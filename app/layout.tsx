@@ -5,9 +5,9 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Workflow Builder - Visual Workflow Design Tool',
+  description: 'A powerful visual workflow builder with drag-and-drop interface, node-based editing, and real-time execution capabilities for creating complex automation workflows.',
+  generator: 'Next.js',
 }
 
 export default function RootLayout({
