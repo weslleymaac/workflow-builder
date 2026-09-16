@@ -39,13 +39,11 @@ export default function LessonPanel({
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-4 py-3">
-        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-cyan-400">
+        <p className="flex items-center gap-1.5 font-display text-[10px] uppercase tracking-[0.22em] text-primary">
           <Rocket className="h-3.5 w-3.5" />
-          Central de missões
+          Livro de quests
         </p>
-        <h2 className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-base font-bold text-transparent dark:from-cyan-200 dark:to-violet-200">
-          Comandante, escolha sua rota
-        </h2>
+        <h2 className="font-display text-base text-foreground">Escolha a missão</h2>
       </div>
 
       <ScrollArea className="flex-1">
@@ -59,10 +57,10 @@ export default function LessonPanel({
                   type="button"
                   onClick={() => onSelectLesson(item.id)}
                   className={cn(
-                    "flex min-w-0 flex-col items-center rounded-xl border px-1.5 py-2 text-center text-xs transition-all duration-200",
+                    "game-tile flex min-w-0 flex-col items-center rounded-xl border-2 px-1.5 py-2 text-center text-xs transition-all duration-200",
                     item.id === lesson.id
-                      ? "border-indigo-300 bg-indigo-50 text-indigo-800 shadow-sm dark:border-cyan-400/50 dark:bg-cyan-500/15 dark:text-cyan-100 dark:shadow-[0_0_16px_rgba(34,211,238,0.15)]"
-                      : "border-border bg-card text-muted-foreground hover:border-indigo-200 hover:bg-muted dark:border-slate-700/80 dark:bg-slate-900/50 dark:hover:border-cyan-500/30 dark:hover:bg-slate-800/60",
+                      ? "border-primary bg-primary/15 text-foreground shadow-[0_0_16px_hsl(var(--primary)/0.2)]"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted",
                   )}
                 >
                   <span className="text-lg">{item.emoji}</span>
@@ -73,23 +71,23 @@ export default function LessonPanel({
             })}
           </div>
 
-          <Card className="glow-border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:border-violet-500/20 dark:from-violet-500/10 dark:via-slate-900/80 dark:to-cyan-500/5">
+          <Card className="glow-border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-secondary/40">
             <CardContent className="space-y-3 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-lg text-foreground">
+                  <p className="font-display text-lg text-foreground">
                     {lesson.emoji} {lesson.title}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">{lesson.concept}</p>
                 </div>
                 {complete && (
-                  <Badge className="border-emerald-500/30 bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/20">
+                  <Badge className="border-emerald-500/40 bg-emerald-500/20 font-display text-[10px] uppercase tracking-wider text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-200">
                     Concluída
                   </Badge>
                 )}
               </div>
               <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm dark:border-slate-700/60 dark:bg-slate-900/60">
-                <p className="font-semibold text-indigo-700 dark:text-cyan-200">Desafio</p>
+                <p className="font-display text-[11px] uppercase tracking-wider text-primary">Desafio</p>
                 <p className="mt-1 text-muted-foreground">{lesson.goal}</p>
               </div>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
@@ -114,8 +112,7 @@ export default function LessonPanel({
                 </ul>
               </div>
               <Button
-                variant="outline"
-                className="w-full border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-100 dark:hover:bg-cyan-500/20 dark:hover:text-cyan-50"
+                className="w-full font-display text-xs uppercase tracking-wider"
                 onClick={() => onLoadExample(lesson.exampleId)}
               >
                 <Sparkles className="h-4 w-4" />
@@ -125,15 +122,15 @@ export default function LessonPanel({
           </Card>
 
           <div className="space-y-2 pt-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Galeria de exemplos
+            <p className="font-display text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Galeria de fases
             </p>
             {EXAMPLE_CATEGORIES.map((category) => {
               const isOpen = openCategory === category.id
               return (
                 <div
                   key={category.id}
-                  className="overflow-hidden rounded-xl border border-border bg-card/80 dark:border-slate-700/60 dark:bg-slate-900/40"
+                  className="overflow-hidden rounded-xl border-2 border-border bg-card/80"
                 >
                   <button
                     type="button"
@@ -142,7 +139,7 @@ export default function LessonPanel({
                   >
                     <span className="text-lg">{category.emoji}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground">{category.title}</p>
+                      <p className="font-display text-sm text-foreground">{category.title}</p>
                       <p className="truncate text-[11px] text-muted-foreground">{category.tagline}</p>
                     </div>
                     <ChevronDown
@@ -159,7 +156,7 @@ export default function LessonPanel({
                             key={meta.id}
                             type="button"
                             onClick={() => onLoadExample(meta.id)}
-                            className="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition hover:bg-indigo-50 dark:hover:bg-cyan-500/10"
+                            className="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition hover:bg-primary/10"
                           >
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-foreground">{example.name}</p>

@@ -18,15 +18,15 @@ export interface ExampleCategory {
 }
 
 export const LEVEL_LABEL: Record<ExampleLevel, string> = {
-  basico: "Básico",
-  intermediario: "Intermediário",
-  avancado: "Avançado",
+  basico: "★ Novato",
+  intermediario: "★★ Piloto",
+  avancado: "★★★ Lenda",
 }
 
 export const LEVEL_STYLE: Record<ExampleLevel, string> = {
-  basico: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-200 dark:border-cyan-400/30",
-  intermediario: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-200 dark:border-violet-400/30",
-  avancado: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/30",
+  basico: "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/40",
+  intermediario: "bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/40",
+  avancado: "bg-violet-50 text-violet-800 border-violet-300 dark:bg-violet-500/15 dark:text-violet-200 dark:border-violet-400/40",
 }
 
 /** Missões organizadas do básico ao avançado, com 2+ exemplos por tipo de nó */

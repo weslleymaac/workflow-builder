@@ -40,7 +40,7 @@ export function LogicNode({
   return (
     <div
       className={cn(
-        "logic-node-shell min-w-[180px] max-w-[240px] rounded-2xl border-2 bg-white/95 px-3 py-2.5 shadow-lg backdrop-blur-sm transition-all dark:bg-slate-900/90",
+        "logic-node-shell game-tile min-w-[180px] max-w-[240px] rounded-2xl border-2 bg-card/95 px-3 py-2.5 backdrop-blur-sm transition-all",
         colors.border,
         selected && "shadow-xl",
         running && cn("running-node ring-2 ring-offset-0", colors.ring),
@@ -53,8 +53,8 @@ export function LogicNode({
       <div className="flex items-center gap-2">
         <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", colors.icon)}>{icon}</div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{title}</div>
-          {subtitle && <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">{subtitle}</div>}
+          <div className="truncate font-display text-[13px] text-foreground">{title}</div>
+          {subtitle && <div className="truncate text-[11px] text-muted-foreground">{subtitle}</div>}
         </div>
       </div>
 

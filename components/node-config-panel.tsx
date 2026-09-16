@@ -62,9 +62,9 @@ export default function NodeConfigPanel({
     <div className="flex h-full flex-col">
       <div className="flex items-start justify-between gap-2 border-b border-slate-700/50 px-4 py-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-cyan-400">Configurar bloco</p>
-          <h2 className="text-base font-bold text-foreground">{node.data.label}</h2>
-          {catalog && <p className="mt-1 text-xs text-slate-500">{catalog.tip}</p>}
+          <p className="font-display text-[10px] uppercase tracking-[0.22em] text-primary">Configurar bloco</p>
+          <h2 className="font-display text-base text-foreground">{node.data.label}</h2>
+          {catalog && <p className="mt-1 text-xs text-muted-foreground">{catalog.tip}</p>}
         </div>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar configuração">
           <X className="h-4 w-4" />
@@ -412,7 +412,7 @@ function ListVariableField({
   if (choices.length === 0) {
     return (
       <Field label="Lista">
-        <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-xs text-amber-100">
+        <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-xs text-amber-800 dark:text-amber-100">
           Nenhuma lista no programa ainda. Use o bloco <strong>Lista → Criar lista</strong> antes deste
           bloco e ela vai aparecer aqui.
         </p>
@@ -443,7 +443,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {children}
-      {hint && <p className="text-[11px] text-slate-500">{hint}</p>}
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   )
 }
@@ -524,7 +524,7 @@ function ConditionFields({
       />
 
       {leftType !== "desconhecido" && (
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-100">
           Tipo detectado: <strong>{DATA_TYPE_LABEL[leftType]}</strong>
         </div>
       )}

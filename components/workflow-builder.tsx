@@ -488,8 +488,8 @@ function LogicFlowStudio() {
     <Tabs value={rightTab} onValueChange={setRightTab} className="flex h-full flex-col">
       <div className="border-b border-border px-3 pt-3">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="licao">Missão</TabsTrigger>
-          <TabsTrigger value="bloco" disabled={!selectedNode}>
+          <TabsTrigger value="licao" className="font-display text-[11px] uppercase tracking-wider">Missão</TabsTrigger>
+          <TabsTrigger value="bloco" disabled={!selectedNode} className="font-display text-[11px] uppercase tracking-wider">
             Bloco
           </TabsTrigger>
         </TabsList>
@@ -515,7 +515,7 @@ function LogicFlowStudio() {
             onClose={() => (canDockMission ? setSelectedNodeId(null) : setMobilePanel(null))}
           />
         ) : (
-          <p className="p-4 text-sm text-slate-500">Clique em um bloco do canvas para configurar.</p>
+          <p className="p-4 text-sm text-muted-foreground">Clique em um bloco do canvas para configurar.</p>
         )}
       </TabsContent>
     </Tabs>
@@ -602,7 +602,7 @@ function LogicFlowStudio() {
     return (
       <div className="relative flex h-[100dvh] items-center justify-center space-bg text-muted-foreground">
         <div className="pointer-events-none absolute inset-0 space-stars" aria-hidden />
-        <p className="relative text-sm">Sincronizando hangar...</p>
+        <p className="font-display relative text-xs uppercase tracking-[0.24em] text-primary">Sincronizando hangar...</p>
       </div>
     )
   }
@@ -622,22 +622,24 @@ function LogicFlowStudio() {
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden space-bg">
       <div className="pointer-events-none absolute inset-0 space-stars" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 hex-grid opacity-60" aria-hidden />
       <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-border glass-panel px-2 py-2 sm:px-4">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-600 text-base shadow-[0_0_20px_rgba(34,211,238,0.35)] sm:h-10 sm:w-10 sm:text-lg">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border-2 border-primary/50 bg-gradient-to-br from-amber-300 via-violet-500 to-cyan-400 text-base shadow-[0_0_20px_hsl(var(--primary)/0.4)] sm:h-10 sm:w-10 sm:text-lg">
             🧑‍🚀
           </div>
           <div className="min-w-0 flex-1">
+            <p className="font-display hidden text-[9px] uppercase tracking-[0.28em] text-primary sm:block">Missão ativa</p>
             <Input
               value={program?.name ?? "Meu programa"}
               onChange={(event) => renameProgram(event.target.value)}
               aria-label="Nome do programa"
-              className="h-7 w-full border-none bg-transparent px-0 text-sm font-bold text-foreground shadow-none focus-visible:ring-0 sm:h-8 sm:text-base"
+              className="font-display h-7 w-full border-none bg-transparent px-0 text-sm text-foreground shadow-none focus-visible:ring-0 sm:h-8 sm:text-base"
             />
           </div>
           <Button size="sm" variant="outline" onClick={exitToHub} className="shrink-0 gap-1.5">
             <FolderKanban className="h-4 w-4" />
-            <span className="hidden sm:inline">Projetos</span>
+            <span className="hidden sm:inline">Hangar</span>
           </Button>
         </div>
 
@@ -697,7 +699,7 @@ function LogicFlowStudio() {
               <Button
                 size="sm"
                 onClick={() => runtimeRef.current.play()}
-                className="h-8 rounded-full bg-primary px-4 font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
+                className="h-8 rounded-full px-4 font-display uppercase tracking-wide"
               >
                 <Play className="h-4 w-4 fill-current" />
                 <span className="hidden sm:inline">{snapshot.status === "paused" ? "Continuar" : "Play"}</span>
@@ -776,11 +778,11 @@ function LogicFlowStudio() {
               deleteKeyCode={["Backspace", "Delete"]}
               defaultEdgeOptions={{
                 type: "custom",
-                markerEnd: { type: MarkerType.ArrowClosed, color: "#22d3ee" },
+                markerEnd: { type: MarkerType.ArrowClosed, color: isDarkCanvas ? "#f5c84b" : "#d97706" },
               }}
               connectionLineType={ConnectionLineType.SmoothStep}
             >
-              <Background gap={24} color={isDarkCanvas ? "#334155" : "#c4b5fd"} size={1.2} />
+              <Background gap={22} color={isDarkCanvas ? "#3f3a1c" : "#d6b56a"} size={1.4} />
               <Controls showInteractive={false} />
               <MiniMap
                 className={showMiniMap ? undefined : "!hidden"}

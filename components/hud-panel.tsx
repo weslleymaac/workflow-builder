@@ -7,7 +7,7 @@ interface HudPanelProps extends HTMLAttributes<HTMLDivElement> {
 
 export function HudPanel({ className, children, corners = true, ...props }: HudPanelProps) {
   return (
-    <div className={cn("hud-panel", className)} {...props}>
+    <div className={cn("hud-panel relative", className)} {...props}>
       {corners && (
         <>
           <span className="hud-corner hud-corner-tl" aria-hidden />

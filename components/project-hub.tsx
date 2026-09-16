@@ -1,16 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import {
-  BookOpen,
-  Clock,
-  FolderOpen,
-  Plus,
-  Rocket,
-  Sparkles,
-  Trash2,
-  Zap,
-} from "lucide-react"
+import { BookOpen, Clock, FolderOpen, Plus, Rocket, Sparkles, Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +28,7 @@ import { formatProgramDate } from "@/lib/storage"
 import type { SavedProgram } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import AlgorithmManual from "./algorithm-manual"
+import { HudPanel } from "./hud-panel"
 import { ThemeToggle } from "./theme-toggle"
 
 interface ProjectHubProps {
@@ -73,228 +65,143 @@ export default function ProjectHub({
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden space-bg">
       <div className="pointer-events-none absolute inset-0 space-stars" aria-hidden />
-      <div
-        className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl dark:bg-cyan-500/10"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-32 bottom-1/4 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl"
-        aria-hidden
-      />
+      <div className="pointer-events-none absolute inset-0 hex-grid" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 scanlines" aria-hidden />
 
-      <header className="relative z-10 flex items-center justify-between border-b border-border/60 glass-panel px-4 py-3 sm:px-8">
+      <header className="relative z-10 flex items-center justify-between border-b border-border glass-panel px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 animate-float items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-600 text-xl shadow-[0_0_24px_rgba(34,211,238,0.35)]">
+          <div className="relative flex h-12 w-12 animate-float items-center justify-center rounded-2xl border-2 border-primary/50 bg-gradient-to-br from-amber-300 via-violet-500 to-cyan-400 text-xl shadow-[0_0_28px_hsl(var(--primary)/0.45)]">
             🧑‍🚀
           </div>
           <div>
-            <h1 className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-lg font-bold text-transparent dark:from-cyan-200 dark:to-violet-200 sm:text-xl">
-              Logic Flow
-            </h1>
-            <p className="text-xs text-muted-foreground sm:text-sm">Estação Orbital · Laboratório de lógica</p>
+            <p className="font-display text-[10px] uppercase tracking-[0.32em] text-primary">Arcade espacial</p>
+            <h1 className="font-display text-lg text-foreground sm:text-xl">Logic Flow</h1>
+            <p className="text-xs text-muted-foreground sm:text-sm">Hangar · escolha uma missão e decole</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="hidden gap-2 border-indigo-200 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20 sm:flex"
-            onClick={() => setManualOpen(true)}
-          >
+          <Button variant="outline" size="sm" className="gap-1.5 font-display text-[11px] uppercase tracking-wider" onClick={() => setManualOpen(true)}>
             <BookOpen className="h-4 w-4" />
-            Manual
+            <span className="hidden sm:inline">Como jogar</span>
           </Button>
           <ThemeToggle />
         </div>
       </header>
 
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
-        <ScrollArea className="flex-1">
-          <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-8 sm:py-12">
-            {/* Hero */}
-            <section className="animate-fade-up text-center">
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-indigo-200/60 bg-indigo-50/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-400">
-                <Sparkles className="h-3.5 w-3.5" />
-                Hangar de projetos
-              </div>
-              <h2 className="mt-5 bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl lg:text-5xl">
-                Escolha sua missão
-              </h2>
-              <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground sm:text-lg">
-                Monte algoritmos visuais, execute em tempo real e salve suas aventuras espaciais.
-              </p>
-            </section>
+      <AlgorithmManual open={manualOpen} onOpenChange={setManualOpen} />
 
-            {/* CTAs */}
-            <section className="mt-10 grid gap-4 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setCreateOpen(true)}
-                className="group relative overflow-hidden rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-600 to-violet-600 p-6 text-left shadow-xl transition-all hover:scale-[1.02] hover:shadow-2xl dark:border-cyan-500/20 dark:from-cyan-600 dark:to-violet-600"
-              >
-                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl transition group-hover:bg-white/20" />
-                <div className="relative">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-                    <Plus className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="mt-4 text-xl font-bold text-white">Criar novo projeto</h3>
-                  <p className="mt-1 text-sm text-white/70">Decole com uma nova missão de lógica</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setManualOpen(true)}
-                className="group relative overflow-hidden rounded-2xl border border-border bg-card/80 p-6 text-left shadow-lg backdrop-blur-sm transition-all hover:scale-[1.02] hover:border-indigo-300 hover:shadow-xl dark:bg-slate-900/60 dark:hover:border-cyan-500/40"
-              >
-                <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-violet-500/10 blur-2xl transition group-hover:bg-violet-500/20" />
-                <div className="relative">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-500/20">
-                    <BookOpen className="h-6 w-6 text-violet-600 dark:text-violet-300" />
-                  </div>
-                  <h3 className="mt-4 text-xl font-bold text-foreground">Manual de algoritmos</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Apresentação interativa estilo PowerPoint — 8 slides
-                  </p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-cyan-400">
-                    <Zap className="h-3 w-3" />
-                    Abrir apresentação
-                  </span>
-                </div>
-              </button>
-            </section>
-
-            {/* Stats rápidos */}
-            <section className="mt-8 flex flex-wrap justify-center gap-4">
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row lg:items-stretch lg:gap-8 lg:px-8">
+        <HudPanel className="flex min-h-[280px] flex-col justify-between overflow-hidden rounded-2xl p-5 sm:p-6 lg:max-w-[440px] lg:shrink-0">
+          <div>
+            <p className="font-display text-[10px] uppercase tracking-[0.28em] text-primary">Tela inicial</p>
+            <h2 className="font-display mt-2 text-3xl text-foreground">Monte fluxos. Complete missões.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Arraste blocos, ligue o caminho da nave e aperte Play. Cada quest ensina um pedaço da lógica — como um jogo de fases.
+            </p>
+            <div className="mt-5 grid grid-cols-3 gap-2 text-center">
               {[
-                { label: "Projetos salvos", value: programs.length },
-                { label: "Slides no manual", value: 8 },
-                { label: "Blocos disponíveis", value: "12+" },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-xl border border-border/60 bg-card/50 px-5 py-3 text-center backdrop-blur-sm"
-                >
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                { emoji: "🧱", label: "Blocos" },
+                { emoji: "🎯", label: "Quests" },
+                { emoji: "🏆", label: "XP" },
+              ].map((item) => (
+                <div key={item.label} className="game-tile rounded-xl border-2 border-border bg-background/60 px-2 py-3">
+                  <div className="text-2xl">{item.emoji}</div>
+                  <p className="mt-1 font-display text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
                 </div>
               ))}
-            </section>
-
-            {/* Lista de projetos */}
-            <section className="mt-10">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  <Rocket className="h-4 w-4 text-indigo-500 dark:text-cyan-400" />
-                  Suas missões
-                </h3>
-                {sorted.length > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {sorted.length} {sorted.length === 1 ? "projeto" : "projetos"}
-                  </span>
-                )}
-              </div>
-
-              {sorted.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border bg-card/40 p-12 text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 text-3xl">
-                    🛸
-                  </div>
-                  <p className="mt-4 font-semibold text-foreground">Nenhum projeto ainda</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Crie sua primeira missão ou leia o manual para começar.
-                  </p>
-                  <div className="mt-6 flex flex-wrap justify-center gap-3">
-                    <Button onClick={() => setCreateOpen(true)} className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Criar projeto
-                    </Button>
-                    <Button variant="outline" onClick={() => setManualOpen(true)} className="gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Ver manual
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {sorted.map((program, i) => {
-                    const isLast = program.id === currentProgramId
-                    return (
-                      <div
-                        key={program.id}
-                        className={cn(
-                          "group relative overflow-hidden rounded-2xl border bg-card/80 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:bg-slate-900/60",
-                          isLast
-                            ? "border-indigo-300 shadow-md dark:border-cyan-500/40 glow-border"
-                            : "border-border hover:border-indigo-200 dark:hover:border-cyan-500/20",
-                        )}
-                        style={{ animationDelay: `${i * 0.05}s` }}
-                      >
-                        {isLast && (
-                          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-cyan-400 dark:to-violet-400" />
-                        )}
-                        <div className="flex items-center gap-3 p-4">
-                          <button
-                            type="button"
-                            onClick={() => onOpen(program.id)}
-                            className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                          >
-                            <div
-                              className={cn(
-                                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors",
-                                isLast
-                                  ? "bg-indigo-100 text-indigo-700 dark:bg-cyan-500/20 dark:text-cyan-300"
-                                  : "bg-muted/80 text-muted-foreground group-hover:bg-indigo-100 group-hover:text-indigo-700 dark:group-hover:bg-cyan-500/15 dark:group-hover:text-cyan-300",
-                              )}
-                            >
-                              <FolderOpen className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate font-semibold text-foreground">{program.name}</p>
-                              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                                <Clock className="h-3 w-3 shrink-0" />
-                                {formatProgramDate(program.createdAt)}
-                              </p>
-                              {isLast && (
-                                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-600 dark:bg-cyan-500/15 dark:text-cyan-400">
-                                  <Zap className="h-2.5 w-2.5" />
-                                  Último aberto
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive disabled:opacity-30"
-                            disabled={programs.length <= 1}
-                            title={programs.length <= 1 ? "Precisa de ao menos um projeto" : "Excluir projeto"}
-                            onClick={() => setDeleteId(program.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
+            </div>
           </div>
-        </ScrollArea>
-      </main>
+          <Button className="mt-6 h-11 w-full gap-2 font-display text-xs uppercase tracking-wider" onClick={() => setManualOpen(true)}>
+            <Sparkles className="h-4 w-4" />
+            Abrir tutorial
+          </Button>
+        </HudPanel>
 
-      <AlgorithmManual open={manualOpen} onOpenChange={setManualOpen} />
+        <div className="flex min-h-0 flex-1 flex-col lg:min-w-0">
+          <div className="animate-fade-up text-center lg:text-left">
+            <p className="flex items-center justify-center gap-2 font-display text-[11px] uppercase tracking-[0.22em] text-primary lg:justify-start">
+              <Rocket className="h-4 w-4" />
+              Seleção de missão
+            </p>
+            <h2 className="font-display mt-2 text-2xl text-foreground sm:text-3xl">Player, escolha sua rota</h2>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              Continue um save ou comece uma nova aventura de lógica.
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <Button className="h-12 w-full gap-2 font-display text-sm uppercase tracking-wider" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nova missão
+            </Button>
+          </div>
+
+          <ScrollArea className="mt-6 min-h-0 flex-1">
+            <div className="space-y-3 pb-4">
+              {sorted.length === 0 && (
+                <HudPanel className="rounded-2xl border-dashed p-8 text-center text-sm text-muted-foreground">
+                  Nenhum save ainda. Crie a primeira missão acima!
+                </HudPanel>
+              )}
+              {sorted.map((program, index) => {
+                const isLast = program.id === currentProgramId
+                return (
+                  <HudPanel
+                    key={program.id}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5",
+                      isLast && "glow-border",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onOpen(program.id)}
+                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                    >
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-primary/30 bg-secondary text-lg">
+                        {["🚀", "🪐", "🛸", "⭐", "🛰️"][index % 5]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-sm text-foreground">{program.name}</p>
+                        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          Save de {formatProgramDate(program.createdAt)}
+                        </p>
+                        {isLast && (
+                          <span className="mt-1 inline-flex items-center gap-1 font-display text-[10px] uppercase tracking-widest text-primary">
+                            <FolderOpen className="h-3 w-3" />
+                            Último save
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0 text-muted-foreground opacity-0 shadow-none transition group-hover:opacity-100 hover:text-destructive disabled:opacity-30"
+                      disabled={programs.length <= 1}
+                      title={programs.length <= 1 ? "Precisa de ao menos um projeto" : "Excluir projeto"}
+                      onClick={() => setDeleteId(program.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </HudPanel>
+                )
+              })}
+            </div>
+          </ScrollArea>
+        </div>
+      </main>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nova missão espacial</DialogTitle>
-            <DialogDescription>Dê um nome ao seu projeto. Você poderá renomear depois no hangar.</DialogDescription>
+            <DialogDescription>Dê um nome ao save. Você poderá renomear depois no hangar.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="project-name">Nome do projeto</Label>
+            <Label htmlFor="project-name">Nome da missão</Label>
             <Input
               id="project-name"
               value={newName}
@@ -308,7 +215,7 @@ export default function ProjectHub({
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={submitCreate}>Criar e abrir</Button>
+            <Button onClick={submitCreate}>Decolar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -316,9 +223,9 @@ export default function ProjectHub({
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir este projeto?</AlertDialogTitle>
+            <AlertDialogTitle>Apagar este save?</AlertDialogTitle>
             <AlertDialogDescription>
-              O fluxo e o progresso deste projeto serão apagados para sempre. Não dá para desfazer.
+              O fluxo e o progresso desta missão serão apagados para sempre. Não dá para desfazer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -330,7 +237,7 @@ export default function ProjectHub({
                 setDeleteId(null)
               }}
             >
-              Excluir
+              Apagar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

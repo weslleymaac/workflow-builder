@@ -211,7 +211,6 @@
 }
 
 .hud-panel {
-  position: relative;
   background: hsl(var(--card) / 0.88);
   backdrop-filter: blur(16px);
   border: 1px solid hsl(var(--border));
@@ -716,4 +715,76 @@
 
 .manual-dot-active {
   transform: scaleY(1.8);
+}
+
+.manual-ppt-enter {
+  animation: manual-ppt-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.manual-ppt-exit-left {
+  animation: manual-ppt-out-left 0.28s ease-in forwards;
+}
+
+.manual-ppt-exit-right {
+  animation: manual-ppt-out-right 0.28s ease-in forwards;
+}
+
+@keyframes manual-ppt-in {
+  from {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes manual-ppt-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+@keyframes manual-ppt-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+.manual-ppt-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+  display: flex;
+  height: 48px;
+  width: 48px;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 2px solid hsl(42 98% 70% / 0.45);
+  background: hsl(234 40% 8% / 0.72);
+  color: hsl(42 98% 72%);
+  backdrop-filter: blur(10px);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.manual-ppt-nav:hover:not(:disabled) {
+  transform: translateY(-50%) scale(1.06);
+  background: hsl(42 98% 56% / 0.2);
+}
+
+.manual-ppt-nav:disabled {
+  opacity: 0.25;
+}
+
+.manual-ppt-nav-left {
+  left: 12px;
+}
+
+.manual-ppt-nav-right {
+  right: 12px;
 }

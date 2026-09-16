@@ -23,7 +23,7 @@ import {
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog"
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog"
 import { MANUAL_SLIDES, type ManualSlide } from "@/lib/manual-slides"
 import { cn } from "@/lib/utils"
 
@@ -253,20 +253,21 @@ export default function AlgorithmManual({ open, onOpenChange }: AlgorithmManualP
         <DialogOverlay className="bg-black/90 backdrop-blur-sm" />
         <DialogPrimitive.Content
           className={cn(
-            "manual-ppt-dialog fixed left-1/2 top-1/2 z-50 flex w-[min(96vw,1100px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl outline-none",
+            "manual-ppt-dialog hud-panel fixed left-1/2 top-1/2 z-50 flex w-[min(96vw,1100px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border-2 border-primary/30 bg-slate-950 shadow-[0_0_80px_hsl(42_98%_56%/0.18)] outline-none",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.97] data-[state=open]:zoom-in-[0.97] duration-300",
           )}
           onPointerDownOutside={(event) => event.preventDefault()}
         >
+          <DialogTitle className="sr-only">Como jogar — tutorial de algoritmos</DialogTitle>
           {/* Toolbar estilo apresentação */}
           <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-4 py-2.5 sm:px-5">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
-                <BookOpen className="h-4 w-4 text-indigo-300" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/40 bg-primary/15">
+                <BookOpen className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Manual</p>
-                <p className="text-sm font-semibold text-white">Algoritmos na prática</p>
+                <p className="font-display text-[10px] uppercase tracking-[0.28em] text-primary">Tutorial</p>
+                <p className="font-display text-sm text-white">Como jogar</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -313,7 +314,7 @@ export default function AlgorithmManual({ open, onOpenChange }: AlgorithmManualP
               {/* Conteúdo direito */}
               <div className="flex flex-col justify-center bg-slate-950 px-6 py-8 sm:px-10 sm:py-10">
                 <span className="manual-emoji-pop mb-4 text-5xl">{slide.emoji}</span>
-                <h2 className={cn("text-2xl font-bold leading-tight sm:text-3xl lg:text-4xl", ACCENT_TEXT[slide.accent])}>
+                <h2 className={cn("font-display text-2xl leading-tight sm:text-3xl lg:text-4xl", ACCENT_TEXT[slide.accent])}>
                   {slide.title}
                 </h2>
                 <p className="mt-3 text-base leading-relaxed text-white/60 sm:text-lg">{slide.subtitle}</p>
@@ -395,7 +396,7 @@ export default function AlgorithmManual({ open, onOpenChange }: AlgorithmManualP
                   <Button
                     size="sm"
                     onClick={() => onOpenChange(false)}
-                    className="gap-1 bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+                    className="gap-1 font-display text-xs uppercase tracking-wider"
                   >
                     <Maximize2 className="h-4 w-4" />
                     Começar missão
@@ -405,7 +406,7 @@ export default function AlgorithmManual({ open, onOpenChange }: AlgorithmManualP
                     size="sm"
                     onClick={next}
                     disabled={animating}
-                    className="gap-1 bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+                    className="gap-1 font-display text-xs uppercase tracking-wider"
                   >
                     Próximo
                     <ChevronRight className="h-4 w-4" />
