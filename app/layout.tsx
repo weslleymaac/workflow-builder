@@ -1,13 +1,22 @@
-import type { Metadata } from 'next'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import { Analytics } from '@vercel/analytics/next'
-import './globals.css'
+import type { Metadata } from "next"
+import { Orbitron } from "next/font/google"
+import { GeistSans } from "geist/font/sans"
+import { GeistMono } from "geist/font/mono"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
+import "reactflow/dist/style.css"
+import "./globals.css"
+
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  variable: "--font-orbitron",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
-  title: 'Workflow Builder - Visual Workflow Design Tool',
-  description: 'A powerful visual workflow builder with drag-and-drop interface, node-based editing, and real-time execution capabilities for creating complex automation workflows.',
-  generator: 'Next.js',
+  title: "Logic Flow — Missão Espacial de Lógica",
+  description:
+    "Embarque numa aventura espacial e aprenda variáveis, condições, loops e listas montando fluxos como um comandante.",
 }
 
 export default function RootLayout({
@@ -16,19 +25,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <style>{`
-html {
-  font-family: ${GeistSans.style.fontFamily};
-  --font-sans: ${GeistSans.variable};
-  --font-mono: ${GeistMono.variable};
-}
-        `}</style>
-      </head>
-      <body>
-        {children}
-        <Analytics />
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      className={`${orbitron.variable} ${GeistSans.variable} ${GeistMono.variable}`}
+    >
+      <body className={GeistSans.className}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="logic-flow-theme">
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )
