@@ -34,7 +34,7 @@ export const NODE_ACCENTS: Record<
   emerald: {
     border: "border-emerald-400/70",
     soft: "bg-emerald-500/10 dark:bg-emerald-500/10",
-    icon: "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.45)]",
+    icon: "bg-emerald-600 text-white",
     handle: "!bg-emerald-400 !border-emerald-300/50",
     text: "text-emerald-700 dark:text-emerald-200",
     ring: "ring-emerald-400/60",
@@ -42,7 +42,7 @@ export const NODE_ACCENTS: Record<
   slate: {
     border: "border-slate-500/60",
     soft: "bg-slate-500/10",
-    icon: "bg-slate-500 text-white shadow-[0_0_10px_rgba(100,116,139,0.35)]",
+    icon: "bg-slate-500 text-white",
     handle: "!bg-slate-400 !border-slate-300/50",
     text: "text-slate-700 dark:text-slate-200",
     ring: "ring-slate-400/50",
@@ -50,7 +50,7 @@ export const NODE_ACCENTS: Record<
   sky: {
     border: "border-sky-400/70",
     soft: "bg-sky-500/10",
-    icon: "bg-sky-500 text-white shadow-[0_0_12px_rgba(14,165,233,0.45)]",
+    icon: "bg-sky-600 text-white",
     handle: "!bg-sky-400 !border-sky-300/50",
     text: "text-sky-700 dark:text-sky-200",
     ring: "ring-sky-400/60",
@@ -58,7 +58,7 @@ export const NODE_ACCENTS: Record<
   violet: {
     border: "border-violet-400/70",
     soft: "bg-violet-500/10",
-    icon: "bg-violet-500 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)]",
+    icon: "bg-violet-600 text-white",
     handle: "!bg-violet-400 !border-violet-300/50",
     text: "text-violet-700 dark:text-violet-200",
     ring: "ring-violet-400/60",
@@ -66,7 +66,7 @@ export const NODE_ACCENTS: Record<
   amber: {
     border: "border-amber-400/70",
     soft: "bg-amber-500/10",
-    icon: "bg-amber-500 text-white shadow-[0_0_12px_rgba(245,158,11,0.45)]",
+    icon: "bg-amber-600 text-white",
     handle: "!bg-amber-400 !border-amber-300/50",
     text: "text-amber-800 dark:text-amber-200",
     ring: "ring-amber-400/60",
@@ -74,7 +74,7 @@ export const NODE_ACCENTS: Record<
   orange: {
     border: "border-orange-400/70",
     soft: "bg-orange-500/10",
-    icon: "bg-orange-500 text-white shadow-[0_0_12px_rgba(249,115,22,0.45)]",
+    icon: "bg-orange-600 text-white",
     handle: "!bg-orange-400 !border-orange-300/50",
     text: "text-orange-700 dark:text-orange-200",
     ring: "ring-orange-400/60",
@@ -82,7 +82,7 @@ export const NODE_ACCENTS: Record<
   pink: {
     border: "border-pink-400/70",
     soft: "bg-pink-500/10",
-    icon: "bg-pink-500 text-white shadow-[0_0_12px_rgba(236,72,153,0.45)]",
+    icon: "bg-pink-600 text-white",
     handle: "!bg-pink-400 !border-pink-300/50",
     text: "text-pink-700 dark:text-pink-200",
     ring: "ring-pink-400/60",
@@ -90,7 +90,7 @@ export const NODE_ACCENTS: Record<
   teal: {
     border: "border-teal-400/70",
     soft: "bg-teal-500/10",
-    icon: "bg-teal-500 text-white shadow-[0_0_12px_rgba(20,184,166,0.45)]",
+    icon: "bg-teal-600 text-white",
     handle: "!bg-teal-400 !border-teal-300/50",
     text: "text-teal-700 dark:text-teal-200",
     ring: "ring-teal-400/60",
@@ -98,7 +98,7 @@ export const NODE_ACCENTS: Record<
   indigo: {
     border: "border-indigo-400/70",
     soft: "bg-indigo-500/10",
-    icon: "bg-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.45)]",
+    icon: "bg-indigo-600 text-white",
     handle: "!bg-indigo-400 !border-indigo-300/50",
     text: "text-indigo-700 dark:text-indigo-200",
     ring: "ring-indigo-400/60",
@@ -158,7 +158,15 @@ export const NODE_CATALOG: NodeCatalogItem[] = [
     type: "condition",
     label: "Se / Senão",
     description: "Tomar uma decisão",
-    tip: "Escolha uma variável — o tipo detecta as comparações disponíveis.",
+    tip: "Combine várias condições com E ou OU.",
+    group: "decisao",
+    accent: "amber",
+  },
+  {
+    type: "switch",
+    label: "Switch",
+    description: "Escolher por valor",
+    tip: "Compara uma variável com vários casos e segue o caminho correspondente.",
     group: "decisao",
     accent: "amber",
   },

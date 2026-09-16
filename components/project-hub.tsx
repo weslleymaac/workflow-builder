@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { BookOpen, Clock, FolderOpen, Plus, Rocket, Sparkles, Trash2 } from "lucide-react"
+import { BookOpen, Clock, FolderOpen, LogOut, Plus, Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils"
 import AlgorithmManual from "./algorithm-manual"
 import { HudPanel } from "./hud-panel"
 import { ThemeToggle } from "./theme-toggle"
+import { useSay } from "./user-name"
 
 interface ProjectHubProps {
   programs: SavedProgram[]
@@ -37,6 +38,7 @@ interface ProjectHubProps {
   onOpen: (programId: string) => void
   onCreate: (name: string) => void
   onDelete: (programId: string) => void
+  onSignOut: () => void
 }
 
 export default function ProjectHub({
@@ -45,18 +47,22 @@ export default function ProjectHub({
   onOpen,
   onCreate,
   onDelete,
+  onSignOut,
 }: ProjectHubProps) {
+  const t = useSay()
   const [createOpen, setCreateOpen] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
   const [newName, setNewName] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const pendingDelete = programs.find((program) => program.id === deleteId)
 
   const sorted = [...programs].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   )
 
   const submitCreate = () => {
-    const name = newName.trim() || "Nova missão"
+    const name = newName.trim() || "Novo fluxo"
     onCreate(name)
     setNewName("")
     setCreateOpen(false)
@@ -64,25 +70,29 @@ export default function ProjectHub({
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden space-bg">
-      <div className="pointer-events-none absolute inset-0 space-stars" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 hex-grid" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 scanlines" aria-hidden />
-
-      <header className="relative z-10 flex items-center justify-between border-b border-border glass-panel px-4 py-3 sm:px-6">
+      <header className="relative z-10 flex items-center justify-between border-b border-border bg-card px-4 py-4 sm:px-8">
         <div className="flex items-center gap-3">
-          <div className="relative flex h-12 w-12 animate-float items-center justify-center rounded-2xl border-2 border-primary/50 bg-gradient-to-br from-amber-300 via-violet-500 to-cyan-400 text-xl shadow-[0_0_28px_hsl(var(--primary)/0.45)]">
-            🧑‍🚀
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+            <span className="font-display text-lg text-[#d4b483]">LF</span>
           </div>
           <div>
-            <p className="font-display text-[10px] uppercase tracking-[0.32em] text-primary">Arcade espacial</p>
-            <h1 className="font-display text-lg text-foreground sm:text-xl">Logic Flow</h1>
-            <p className="text-xs text-muted-foreground sm:text-sm">Hangar · escolha uma missão e decole</p>
+            <h1 className="font-display text-2xl text-foreground">Logic Flow</h1>
+            <p className="text-sm text-muted-foreground">Estúdio de lógica de programação</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 font-display text-[11px] uppercase tracking-wider" onClick={() => setManualOpen(true)}>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setManualOpen(true)}>
             <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Como jogar</span>
+            <span className="hidden sm:inline">Manual</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5"
+            onClick={() => setSignOutOpen(true)}
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sair</span>
           </Button>
           <ThemeToggle />
         </div>
@@ -90,122 +100,94 @@ export default function ProjectHub({
 
       <AlgorithmManual open={manualOpen} onOpenChange={setManualOpen} />
 
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row lg:items-stretch lg:gap-8 lg:px-8">
-        <HudPanel className="flex min-h-[280px] flex-col justify-between overflow-hidden rounded-2xl p-5 sm:p-6 lg:max-w-[440px] lg:shrink-0">
-          <div>
-            <p className="font-display text-[10px] uppercase tracking-[0.28em] text-primary">Tela inicial</p>
-            <h2 className="font-display mt-2 text-3xl text-foreground">Monte fluxos. Complete missões.</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Arraste blocos, ligue o caminho da nave e aperte Play. Cada quest ensina um pedaço da lógica — como um jogo de fases.
-            </p>
-            <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-              {[
-                { emoji: "🧱", label: "Blocos" },
-                { emoji: "🎯", label: "Quests" },
-                { emoji: "🏆", label: "XP" },
-              ].map((item) => (
-                <div key={item.label} className="game-tile rounded-xl border-2 border-border bg-background/60 px-2 py-3">
-                  <div className="text-2xl">{item.emoji}</div>
-                  <p className="mt-1 font-display text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <Button className="mt-6 h-11 w-full gap-2 font-display text-xs uppercase tracking-wider" onClick={() => setManualOpen(true)}>
-            <Sparkles className="h-4 w-4" />
-            Abrir tutorial
-          </Button>
-        </HudPanel>
-
-        <div className="flex min-h-0 flex-1 flex-col lg:min-w-0">
-          <div className="animate-fade-up text-center lg:text-left">
-            <p className="flex items-center justify-center gap-2 font-display text-[11px] uppercase tracking-[0.22em] text-primary lg:justify-start">
-              <Rocket className="h-4 w-4" />
-              Seleção de missão
-            </p>
-            <h2 className="font-display mt-2 text-2xl text-foreground sm:text-3xl">Player, escolha sua rota</h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              Continue um save ou comece uma nova aventura de lógica.
-            </p>
-          </div>
-
-          <div className="mt-6">
-            <Button className="h-12 w-full gap-2 font-display text-sm uppercase tracking-wider" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Nova missão
-            </Button>
-          </div>
-
-          <ScrollArea className="mt-6 min-h-0 flex-1">
-            <div className="space-y-3 pb-4">
-              {sorted.length === 0 && (
-                <HudPanel className="rounded-2xl border-dashed p-8 text-center text-sm text-muted-foreground">
-                  Nenhum save ainda. Crie a primeira missão acima!
-                </HudPanel>
-              )}
-              {sorted.map((program, index) => {
-                const isLast = program.id === currentProgramId
-                return (
-                  <HudPanel
-                    key={program.id}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5",
-                      isLast && "glow-border",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onOpen(program.id)}
-                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                    >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-primary/30 bg-secondary text-lg">
-                        {["🚀", "🪐", "🛸", "⭐", "🛰️"][index % 5]}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-display text-sm text-foreground">{program.name}</p>
-                        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3 shrink-0" />
-                          Save de {formatProgramDate(program.createdAt)}
-                        </p>
-                        {isLast && (
-                          <span className="mt-1 inline-flex items-center gap-1 font-display text-[10px] uppercase tracking-widest text-primary">
-                            <FolderOpen className="h-3 w-3" />
-                            Último save
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="shrink-0 text-muted-foreground opacity-0 shadow-none transition group-hover:opacity-100 hover:text-destructive disabled:opacity-30"
-                      disabled={programs.length <= 1}
-                      title={programs.length <= 1 ? "Precisa de ao menos um projeto" : "Excluir projeto"}
-                      onClick={() => setDeleteId(program.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </HudPanel>
-                )
-              })}
-            </div>
-          </ScrollArea>
+      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col px-4 py-10 sm:px-6 sm:py-14">
+        <div className="animate-fade-up">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Seus projetos</p>
+          <h2 className="font-display mt-3 text-3xl text-foreground sm:text-4xl">
+            {t("Olá, {name}")}
+          </h2>
+          <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Continue de onde parou. Abra um fluxo salvo ou comece um novo. O manual cobre os conceitos antes de você
+            montar o canvas.
+          </p>
         </div>
+
+        <div className="mt-8">
+          <Button className="h-11 w-full gap-2 sm:w-auto" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Novo fluxo
+          </Button>
+        </div>
+
+        <ScrollArea className="mt-8 min-h-0 flex-1">
+          <div className="space-y-2 pb-4">
+            {sorted.length === 0 && (
+              <HudPanel className="rounded-2xl border-dashed p-10 text-center text-sm text-muted-foreground">
+                Nenhum projeto ainda. Crie o primeiro fluxo acima.
+              </HudPanel>
+            )}
+            {sorted.map((program) => {
+              const isLast = program.id === currentProgramId
+              return (
+                <HudPanel
+                  key={program.id}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-muted/40",
+                    isLast && "ring-1 ring-primary/20",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onOpen(program.id)}
+                    className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-sm font-medium text-muted-foreground">
+                      {program.name.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-medium text-foreground">{program.name}</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        Atualizado em {formatProgramDate(program.createdAt)}
+                      </p>
+                      {isLast && (
+                        <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                          <FolderOpen className="h-3 w-3" />
+                          Último aberto
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="shrink-0 text-muted-foreground opacity-0 shadow-none transition group-hover:opacity-100 hover:text-destructive disabled:opacity-30"
+                    disabled={programs.length <= 1}
+                    title={programs.length <= 1 ? "Precisa de ao menos um projeto" : "Excluir projeto"}
+                    onClick={() => setDeleteId(program.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </HudPanel>
+              )
+            })}
+          </div>
+        </ScrollArea>
       </main>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova missão espacial</DialogTitle>
-            <DialogDescription>Dê um nome ao save. Você poderá renomear depois no hangar.</DialogDescription>
+            <DialogTitle>Novo fluxo</DialogTitle>
+            <DialogDescription>Dê um nome ao projeto. Você pode renomear depois no estúdio.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="project-name">Nome da missão</Label>
+            <Label htmlFor="project-name">Nome do projeto</Label>
             <Input
               id="project-name"
               value={newName}
-              placeholder="Ex: Minha primeira órbita"
+              placeholder="Ex: Condicionais"
               autoFocus
               onChange={(event) => setNewName(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && submitCreate()}
@@ -215,7 +197,7 @@ export default function ProjectHub({
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={submitCreate}>Decolar</Button>
+            <Button onClick={submitCreate}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -223,9 +205,11 @@ export default function ProjectHub({
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Apagar este save?</AlertDialogTitle>
+            <AlertDialogTitle>Apagar este projeto?</AlertDialogTitle>
             <AlertDialogDescription>
-              O fluxo e o progresso desta missão serão apagados para sempre. Não dá para desfazer.
+              {pendingDelete
+                ? `O fluxo “${pendingDelete.name}” e o progresso desta aula serão apagados. Essa ação não pode ser desfeita.`
+                : "O fluxo e o progresso desta aula serão apagados. Essa ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -239,6 +223,21 @@ export default function ProjectHub({
             >
               Apagar
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={signOutOpen} onOpenChange={setSignOutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do estúdio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você volta para a tela do primeiro nome. Os projetos continuam salvos neste navegador.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={onSignOut}>Sair</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

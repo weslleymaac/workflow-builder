@@ -8,10 +8,26 @@ export type LogicNodeType =
   | "input"
   | "variable"
   | "condition"
+  | "switch"
   | "loop"
   | "list"
   | "print"
   | "function"
+
+export type ConditionJoin = "e" | "ou"
+
+export interface ConditionRule {
+  join?: ConditionJoin
+  leftExpr: string
+  operator: CompareOperator
+  rightExpr?: string
+}
+
+export interface SwitchCase {
+  id: string
+  matchExpr: string
+  label?: string
+}
 
 export type CompareOperator =
   | "=="
@@ -55,8 +71,14 @@ export interface NodeData {
   leftExpr?: string
   operator?: CompareOperator
   rightExpr?: string
+  /** Várias condições ligadas por E / OU */
+  conditions?: ConditionRule[]
   trueLabel?: string
   falseLabel?: string
+
+  switchExpr?: string
+  switchCases?: SwitchCase[]
+  defaultLabel?: string
 
   loopType?: LoopType
   counterVar?: string
@@ -102,6 +124,10 @@ export interface PersistedState {
   completedLessons: string[]
   speedMs: number
   stepMode: boolean
+  /** Exibe o padrão de bolinhas no canvas do React Flow */
+  showCanvasDots: boolean
+  /** Primeiro nome da pessoa, usado nas aulas e na interface */
+  firstName?: string
 }
 
 export type RuntimeStatus = "idle" | "running" | "paused" | "waiting-input" | "done" | "error"

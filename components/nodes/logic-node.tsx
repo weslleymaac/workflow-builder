@@ -40,7 +40,7 @@ export function LogicNode({
   return (
     <div
       className={cn(
-        "logic-node-shell game-tile min-w-[180px] max-w-[240px] rounded-2xl border-2 bg-card/95 px-3 py-2.5 backdrop-blur-sm transition-all",
+        "logic-node-shell min-w-[210px] max-w-[280px] rounded-2xl border bg-card px-3.5 py-3 transition-all",
         colors.border,
         selected && "shadow-xl",
         running && cn("running-node ring-2 ring-offset-0", colors.ring),
@@ -50,15 +50,15 @@ export function LogicNode({
         <Handle type="target" position={Position.Left} className={cn("h-3 w-3", colors.handle)} />
       )}
 
-      <div className="flex items-center gap-2">
-        <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", colors.icon)}>{icon}</div>
-        <div className="min-w-0">
-          <div className="truncate font-display text-[13px] text-foreground">{title}</div>
-          {subtitle && <div className="truncate text-[11px] text-muted-foreground">{subtitle}</div>}
+      <div className="flex items-center gap-3">
+        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", colors.icon)}>{icon}</div>
+        <div className="min-w-0 space-y-0.5">
+          <div className="truncate text-[15px] font-medium text-foreground">{title}</div>
+          {subtitle && <div className="truncate text-sm leading-relaxed text-muted-foreground">{subtitle}</div>}
         </div>
       </div>
 
-      {children && <div className={cn("mt-2 rounded-lg px-2 py-1 text-[11px] leading-snug", colors.soft, colors.text)}>{children}</div>}
+      {children && <div className={cn("mt-3 rounded-xl px-2.5 py-1.5 text-sm leading-relaxed", colors.soft, colors.text)}>{children}</div>}
 
       {sources.map((source, index) => (
         <Handle

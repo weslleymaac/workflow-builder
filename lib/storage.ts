@@ -93,6 +93,8 @@ export function emptyPersistedState(defaultGraph: WorkflowGraph): PersistedState
     completedLessons: [],
     speedMs: DEFAULT_SPEED_MS,
     stepMode: false,
+    showCanvasDots: true,
+    firstName: undefined,
   }
 }
 
@@ -107,6 +109,8 @@ export function loadState(): PersistedState | null {
     if (parsed.version === STORAGE_VERSION) {
       return {
         ...parsed,
+        showCanvasDots: parsed.showCanvasDots ?? true,
+        firstName: parsed.firstName?.trim() || undefined,
         programs: parsed.programs.map((program) => ({
           ...withProgramTimestamps(program),
           graph: {
@@ -121,6 +125,8 @@ export function loadState(): PersistedState | null {
       const migrated: PersistedState = {
         ...parsed,
         version: STORAGE_VERSION,
+        showCanvasDots: parsed.showCanvasDots ?? true,
+        firstName: parsed.firstName?.trim() || undefined,
         programs: parsed.programs.map((program) => ({
           ...withProgramTimestamps(program),
           graph: moveForEachToLoop(

@@ -1,4 +1,10 @@
-import { evaluateCondition, formatConditionDisplay } from "./condition"
+import {
+  evaluateCondition,
+  evaluateConditions,
+  formatConditionDisplay,
+  formatConditionsDisplay,
+  getConditionRules,
+} from "./condition"
 import { evaluateUserExpression, interpolateTemplate, parseListItems } from "./expression"
 import { callFunction, findFunction } from "./functions"
 import type {
@@ -8,7 +14,7 @@ import type {
   WorkflowEdge,
   WorkflowNode,
 } from "./types"
-import { cloneValue, coerceInput, formatValue, isValidIdentifier } from "./values"
+import { cloneValue, coerceInput, formatValue, isValidIdentifier, valuesAreEqual } from "./values"
 
 const MAX_STEPS = 4000
 
@@ -202,6 +208,8 @@ export class LogicRuntime {
         return this.next(node)
       case "condition":
         return this.branch(node)
+      case "switch":
+        return this.switchBranch(node)
       case "loop":
         return this.loop(node)
       case "list":
@@ -258,16 +266,30 @@ export class LogicRuntime {
   }
 
   private branch(node: WorkflowNode): WorkflowNode | "end" {
-    const operator = node.data.operator ?? "=="
-    const expr = formatConditionDisplay(node.data.leftExpr, operator, node.data.rightExpr)
-    const passed = evaluateCondition(
-      node.data.leftExpr || "falso",
-      operator,
-      node.data.rightExpr,
-      this.snapshot.memory,
-    )
+    const rules = getConditionRules(node.data)
+    const expr = formatConditionsDisplay(rules)
+    const passed = evaluateConditions(rules, this.snapshot.memory)
     this.info(`${expr} → ${passed ? "SIM" : "NÃO"}`)
     return this.next(node, passed ? "true" : "false")
+  }
+
+  private switchBranch(node: WorkflowNode): WorkflowNode | "end" {
+    const expr = node.data.switchExpr?.trim()
+    if (!expr) throw new Error(`O bloco "${node.data.label}" precisa de uma variável ou expressão para comparar.`)
+
+    const value = evaluateUserExpression(expr, this.snapshot.memory)
+    const cases = node.data.switchCases ?? []
+
+    for (const item of cases) {
+      const match = evaluateUserExpression(item.matchExpr || '""', this.snapshot.memory)
+      if (valuesAreEqual(value, match)) {
+        this.info(`Switch ${formatValue(value)} = ${item.matchExpr} → ${item.label || item.id}`)
+        return this.next(node, item.id)
+      }
+    }
+
+    this.info(`Switch ${formatValue(value)} → padrão (${node.data.defaultLabel || "outro"})`)
+    return this.next(node, "default")
   }
 
   private loop(node: WorkflowNode): WorkflowNode | "end" {
@@ -421,11 +443,22 @@ export class LogicRuntime {
 
     if (outgoing.length === 0) {
       if (node.type === "end") return "end"
-      const label = handle === "true" ? "SIM" : handle === "false" ? "NÃO" : handle === "body" ? "corpo" : handle === "done" ? "depois" : "próximo"
+      const label =
+        handle === "true"
+          ? "SIM"
+          : handle === "false"
+            ? "NÃO"
+            : handle === "body"
+              ? "corpo"
+              : handle === "done"
+                ? "depois"
+                : handle === "default"
+                  ? "padrão"
+                  : "próximo"
       throw new Error(`O bloco "${node.data.label}" não tem caminho ${label}. Ligue a setinha.`)
     }
 
-    if (outgoing.length > 1 && node.type !== "condition" && node.type !== "loop") {
+    if (outgoing.length > 1 && node.type !== "condition" && node.type !== "loop" && node.type !== "switch") {
       throw new Error(`O bloco "${node.data.label}" tem mais de uma saída. Deixe só um caminho.`)
     }
 

@@ -10,11 +10,12 @@ import {
   MessageCircleQuestion,
   Play,
   Repeat,
+  Signpost,
   Speech,
   Variable,
 } from "lucide-react"
 import { FUNCTION_CATEGORY_LABEL, categoryOf, findFunction } from "@/lib/functions"
-import { formatConditionDisplay } from "@/lib/condition"
+import { formatConditionsDisplay, getConditionRules } from "@/lib/condition"
 import type { NodeData } from "@/lib/types"
 import { DATA_TYPE_LABEL } from "@/lib/values"
 import { LogicNode } from "./logic-node"
@@ -119,7 +120,7 @@ export const ConditionNode = memo(({ data, selected }: NodeProps<NodeData>) => (
       { id: "false", position: "right", colorClass: "!bg-rose-500 !border-rose-200", style: { top: "72%" } },
     ]}
   >
-    <div>{formatConditionDisplay(data.leftExpr, data.operator, data.rightExpr)}</div>
+    <div>{formatConditionsDisplay(getConditionRules(data))}</div>
     <div className="mt-1 flex flex-col items-end gap-0.5 font-semibold">
       <span className="text-emerald-600 dark:text-emerald-400">{data.trueLabel || "sim"}</span>
       <span className="text-rose-600 dark:text-rose-400">{data.falseLabel || "não"}</span>
@@ -127,6 +128,48 @@ export const ConditionNode = memo(({ data, selected }: NodeProps<NodeData>) => (
   </LogicNode>
 ))
 ConditionNode.displayName = "ConditionNode"
+
+export const SwitchNode = memo(({ data, selected }: NodeProps<NodeData>) => {
+  const cases = data.switchCases ?? []
+  const total = cases.length + 1
+  const sources = [
+    ...cases.map((item, index) => ({
+      id: item.id,
+      position: "right" as const,
+      colorClass: "!bg-amber-500 !border-amber-200",
+      style: { top: `${((index + 1) / (total + 1)) * 100}%` },
+    })),
+    {
+      id: "default",
+      position: "right" as const,
+      colorClass: "!bg-slate-500 !border-slate-200",
+      style: { top: `${((cases.length + 1) / (total + 1)) * 100}%` },
+    },
+  ]
+
+  return (
+    <LogicNode
+      accent="amber"
+      icon={<Signpost className="h-4 w-4" />}
+      title={data.label || "Switch"}
+      subtitle="Escolhe por valor"
+      selected={selected}
+      running={data.running}
+      sources={sources}
+    >
+      <div className="font-mono text-xs">{data.switchExpr || "variável"}</div>
+      <div className="mt-2 space-y-0.5 text-right text-[11px] font-semibold">
+        {cases.map((item) => (
+          <div key={item.id} className="text-amber-700 dark:text-amber-300">
+            {item.label || item.matchExpr}
+          </div>
+        ))}
+        <div className="text-slate-600 dark:text-slate-300">{data.defaultLabel || "padrão"}</div>
+      </div>
+    </LogicNode>
+  )
+})
+SwitchNode.displayName = "SwitchNode"
 
 const LOOP_SUBTITLE: Record<NonNullable<NodeData["loopType"]>, string> = {
   para: "Para (for)",
@@ -138,7 +181,7 @@ export const LoopNode = memo(({ data, selected }: NodeProps<NodeData>) => {
   const loopType = data.loopType ?? "para"
   const subtitle =
     loopType === "enquanto"
-      ? formatConditionDisplay(data.leftExpr, data.operator, data.rightExpr)
+      ? formatConditionsDisplay(getConditionRules(data))
       : loopType === "paraCada"
         ? `cada ${data.itemVar || "item"} em ${data.listName || "?"}`
         : `${data.counterVar || "i"} de ${data.fromExpr || "1"} até ${data.toExpr || "5"}`

@@ -12,9 +12,9 @@ import {
   MessageCircleQuestion,
   Play,
   Repeat,
-  Rocket,
   RotateCw,
   Shuffle,
+  Signpost,
   Speech,
   Variable,
   Workflow,
@@ -31,6 +31,7 @@ const ICONS = {
   input: MessageCircleQuestion,
   print: Speech,
   condition: GitBranch,
+  switch: Signpost,
   loop: Repeat,
   list: List,
   function: FunctionSquare,
@@ -53,14 +54,13 @@ export default function NodeLibrary({ onPick }: { onPick: (nodeType: string) => 
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-4 p-3">
+      <div className="space-y-6 p-4">
         <div>
-          <p className="flex items-center gap-1.5 font-display text-[10px] uppercase tracking-[0.22em] text-primary">
-            <Rocket className="h-3.5 w-3.5" />
-            Inventário
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Biblioteca
           </p>
-          <h2 className="font-display text-sm text-foreground">Blocos de lógica</h2>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          <h2 className="font-display mt-1.5 text-xl text-foreground">Blocos de lógica</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             Toque ou arraste para o canvas. O fluxo vai da esquerda para a direita.
           </p>
         </div>
@@ -69,9 +69,9 @@ export default function NodeLibrary({ onPick }: { onPick: (nodeType: string) => 
           const GroupIcon = GROUP_ICONS[group.id]
 
           return (
-            <div key={group.id} className="space-y-2">
-              <p className="flex items-center gap-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                <GroupIcon className="h-3.5 w-3.5 text-violet-500 dark:text-violet-400" />
+            <div key={group.id} className="space-y-2.5">
+              <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <GroupIcon className="h-4 w-4" />
                 {group.title}
               </p>
               {NODE_CATALOG.filter((item) => item.group === group.id).map((item) => {
@@ -86,21 +86,21 @@ export default function NodeLibrary({ onPick }: { onPick: (nodeType: string) => 
                     onDragStart={(event) => onDragStart(event, item.type)}
                     onClick={() => onPick(item.type)}
                     className={cn(
-                      "game-tile group flex w-full items-start gap-2 rounded-xl border-2 bg-card px-2.5 py-2 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted",
+                      "group flex w-full items-start gap-3 rounded-2xl border bg-card px-3 py-3 text-left transition-colors hover:bg-muted/50",
                       colors.border,
                     )}
                   >
                     <div
                       className={cn(
-                        "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105",
+                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
                         colors.icon,
                       )}
                     >
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="min-w-0">
-                      <span className="font-display text-sm text-foreground">{item.label}</span>
-                      <p className="text-[11px] leading-snug text-muted-foreground">{item.tip}</p>
+                    <div className="min-w-0 space-y-1">
+                      <span className="block text-[15px] font-medium text-foreground">{item.label}</span>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{item.tip}</p>
                     </div>
                   </button>
                 )
@@ -111,7 +111,7 @@ export default function NodeLibrary({ onPick }: { onPick: (nodeType: string) => 
 
         <Badge
           variant="secondary"
-          className="w-full justify-center gap-1.5 border-2 border-primary/25 bg-secondary/70 text-center font-normal text-secondary-foreground"
+          className="w-full justify-center gap-2 border-border bg-secondary/70 px-3 py-2 text-center text-sm font-normal leading-relaxed text-secondary-foreground"
         >
           <Lightbulb className="h-3.5 w-3.5 shrink-0" />
           Clique no bloco do canvas para configurar

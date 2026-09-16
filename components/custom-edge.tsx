@@ -33,8 +33,8 @@ export default function CustomEdge({
         markerEnd={markerEnd}
         style={{
           strokeWidth: selected ? 2.5 : 2,
-          stroke: selected ? "#f5c84b" : "#94a3b8",
-          filter: selected ? "drop-shadow(0 0 5px rgba(245,200,75,0.65))" : undefined,
+          stroke: selected ? "#d4b483" : "#8a8174",
+          filter: undefined,
           ...style,
         }}
       />
@@ -46,7 +46,7 @@ export default function CustomEdge({
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "none",
             }}
-            className="rounded-full border-2 border-primary/40 bg-card/95 px-2 py-0.5 font-display text-[10px] uppercase tracking-wide text-primary shadow-[0_0_10px_hsl(var(--primary)/0.25)] backdrop-blur-sm"
+            className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground"
           >
             {data.label}
           </div>

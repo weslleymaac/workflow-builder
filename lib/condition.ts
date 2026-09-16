@@ -1,5 +1,5 @@
 import { evaluateUserExpression } from "./expression"
-import type { CompareOperator, DataType, RuntimeValue } from "./types"
+import type { CompareOperator, ConditionJoin, ConditionRule, DataType, RuntimeValue } from "./types"
 import { asBoolean, asNumber, asString, valuesAreEqual } from "./values"
 
 export type InferredType = DataType | "desconhecido"
@@ -124,6 +124,72 @@ export function formatConditionDisplay(
     return `${leftText} ${OPERATOR_SYMBOL[op]}`
   }
   return `${leftText} ${OPERATOR_SYMBOL[op]} ${right?.trim() || "?"}`
+}
+
+export function getConditionRules(data: {
+  leftExpr?: string
+  operator?: CompareOperator
+  rightExpr?: string
+  conditions?: ConditionRule[]
+}): ConditionRule[] {
+  if (data.conditions && data.conditions.length > 0) {
+    return data.conditions
+  }
+  return [
+    {
+      leftExpr: data.leftExpr ?? "",
+      operator: data.operator ?? "==",
+      rightExpr: data.rightExpr,
+    },
+  ]
+}
+
+export function formatConditionsDisplay(rules: ConditionRule[]): string {
+  if (rules.length === 0) return "?"
+  return rules
+    .map((rule, index) => {
+      const part = formatConditionDisplay(rule.leftExpr, rule.operator, rule.rightExpr)
+      if (index === 0) return part
+      const join = rule.join === "ou" ? " OU " : " E "
+      return `${join}${part}`
+    })
+    .join("")
+}
+
+export function evaluateConditions(
+  rules: ConditionRule[],
+  memory: Record<string, RuntimeValue>,
+): boolean {
+  if (rules.length === 0) return false
+
+  let result = evaluateCondition(
+    rules[0].leftExpr || "falso",
+    rules[0].operator ?? "==",
+    rules[0].rightExpr,
+    memory,
+  )
+
+  for (let index = 1; index < rules.length; index++) {
+    const rule = rules[index]
+    const value = evaluateCondition(
+      rule.leftExpr || "falso",
+      rule.operator ?? "==",
+      rule.rightExpr,
+      memory,
+    )
+    result = rule.join === "ou" ? result || value : result && value
+  }
+
+  return result
+}
+
+export function createEmptyConditionRule(join?: ConditionJoin): ConditionRule {
+  return {
+    join,
+    leftExpr: "",
+    operator: "==",
+    rightExpr: "",
+  }
 }
 
 export function evaluateCondition(

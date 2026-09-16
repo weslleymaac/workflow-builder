@@ -14,7 +14,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="h-8 w-[72px] rounded-full border-2 border-border bg-muted/50" aria-hidden />
+      <div className="h-8 w-[72px] rounded-full border border-border bg-muted/50" aria-hidden />
     )
   }
 
@@ -22,7 +22,7 @@ export function ThemeToggle() {
 
   return (
     <div
-      className="flex items-center rounded-full border-2 border-border bg-muted/60 p-0.5 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.15)]"
+      className="flex items-center rounded-full border border-border bg-muted/60 p-0.5"
       role="group"
       aria-label="Tema da interface"
     >
@@ -32,7 +32,7 @@ export function ThemeToggle() {
         variant="ghost"
         className={cn(
           "h-7 rounded-full px-2.5 shadow-none",
-          active === "light" && "bg-primary text-primary-foreground shadow-[0_2px_0_hsl(var(--primary)/0.45)]",
+          active === "light" && "bg-primary text-primary-foreground",
         )}
         aria-pressed={active === "light"}
         title="Modo claro"
@@ -47,7 +47,7 @@ export function ThemeToggle() {
         variant="ghost"
         className={cn(
           "h-7 rounded-full px-2.5 shadow-none",
-          active === "dark" && "bg-primary text-primary-foreground shadow-[0_2px_0_hsl(var(--primary)/0.45)]",
+          active === "dark" && "bg-primary text-primary-foreground",
         )}
         aria-pressed={active === "dark"}
         title="Modo escuro"

@@ -17,6 +17,8 @@ import ReactFlow, {
   MarkerType,
 } from "reactflow"
 import {
+  AlignHorizontalSpaceAround,
+  CircleDot,
   FastForward,
   FolderKanban,
   Gauge,
@@ -56,6 +58,8 @@ import NodeLibrary from "./node-library"
 import ProjectHub from "./project-hub"
 import RuntimePanel from "./runtime-panel"
 import { ThemeToggle } from "./theme-toggle"
+import { UserNameProvider } from "./user-name"
+import WelcomeScreen from "./welcome-screen"
 import { useTheme } from "next-themes"
 import {
   ConditionNode,
@@ -66,6 +70,7 @@ import {
   LoopNode,
   PrintNode,
   StartNode,
+  SwitchNode,
   VariableNode,
 } from "./nodes/logic-nodes"
 import { LogicRuntime } from "@/lib/executor"
@@ -81,12 +86,14 @@ import {
 } from "@/lib/storage"
 import type { PersistedState, RuntimeSnapshot, WorkflowEdge, WorkflowNode } from "@/lib/types"
 import {
+  autoLayoutGraph,
   collectListVariables,
   collectProgramVariables,
   createNode,
   generateNodeId,
   syncNodeIdCounter,
 } from "@/lib/workflow-utils"
+import { say } from "@/lib/personalize"
 
 const nodeTypes = {
   start: StartNode,
@@ -95,6 +102,7 @@ const nodeTypes = {
   input: InputNode,
   print: PrintNode,
   condition: ConditionNode,
+  switch: SwitchNode,
   loop: LoopNode,
   list: ListNode,
   function: FunctionNode,
@@ -143,6 +151,7 @@ function LogicFlowStudio() {
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) as WorkflowNode | undefined
   const program = currentProgram(persisted)
+  const firstName = persisted.firstName ?? ""
 
   useEffect(() => {
     const saved = loadState()
@@ -212,29 +221,47 @@ function LogicFlowStudio() {
       }
       saveState(next)
       toast({
-        title: "Missão concluída!",
-        description: `Mandou bem em ${lesson.title}.`,
+        title: say("{name}, aula concluída", firstName),
+        description: say(`Mandou bem em ${lesson.title}.`, firstName),
       })
       return next
     })
   }, [nodes, program?.lessonId, snapshot])
 
+  const resolveHandleLabel = useCallback(
+    (sourceId: string | null | undefined, sourceHandle?: string | null) => {
+      if (!sourceHandle) return undefined
+      if (HANDLE_LABELS[sourceHandle]) return HANDLE_LABELS[sourceHandle]
+
+      const source = nodes.find((item) => item.id === sourceId) as WorkflowNode | undefined
+      if (source?.type === "switch") {
+        if (sourceHandle === "default") return source.data.defaultLabel || "padrão"
+        const match = source.data.switchCases?.find((item) => item.id === sourceHandle)
+        return match?.label || match?.matchExpr || sourceHandle
+      }
+
+      return sourceHandle
+    },
+    [nodes],
+  )
+
   const onConnect = useCallback(
     (params: Edge | Connection) => {
       const sourceHandle = "sourceHandle" in params ? params.sourceHandle : undefined
+      const label = resolveHandleLabel(params.source, sourceHandle)
       setEdges((current) =>
         addEdge(
           {
             ...params,
             type: "custom",
             markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
-            data: sourceHandle ? { label: HANDLE_LABELS[sourceHandle] ?? sourceHandle } : undefined,
+            data: label ? { label } : undefined,
           },
           current,
         ),
       )
     },
-    [setEdges],
+    [resolveHandleLabel, setEdges],
   )
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
@@ -273,7 +300,7 @@ function LogicFlowStudio() {
       setSelectedNodeId(newNode.id)
       setRightTab("bloco")
     },
-    [nodes, reactFlowInstance, setNodes],
+    [nodes, reactFlowInstance, setNodes, firstName],
   )
 
   const updateNodeData = useCallback(
@@ -335,7 +362,7 @@ function LogicFlowStudio() {
       return next
     })
     loadGraph(example.graph)
-    toast({ title: "🚀 Exemplo carregado", description: example.description })
+    toast({ title: "Exemplo carregado", description: example.description })
   }
 
   const resetCanvas = () => {
@@ -349,6 +376,26 @@ function LogicFlowStudio() {
     setEdges([])
     setSelectedNodeId(start.id)
   }
+
+  const autoLayoutNodes = useCallback(() => {
+    setNodes((current) => {
+      const laidOut = autoLayoutGraph(current as WorkflowNode[], edges as WorkflowEdge[])
+      requestAnimationFrame(() => reactFlowInstance?.fitView({ padding: 0.25, duration: 300 }))
+      return laidOut
+    })
+    toast({
+      title: "Layout ajustado",
+      description: "Os blocos foram reorganizados automaticamente.",
+    })
+  }, [edges, reactFlowInstance, setNodes, firstName])
+
+  const toggleCanvasDots = useCallback(() => {
+    setPersisted((current) => {
+      const next = { ...current, showCanvasDots: !current.showCanvasDots }
+      saveState(next)
+      return next
+    })
+  }, [])
 
   const renameProgram = (name: string) => {
     setPersisted((current) => {
@@ -389,7 +436,10 @@ function LogicFlowStudio() {
     })
     loadGraph(created.graph)
     setStudioOpen(true)
-    toast({ title: "🚀 Projeto criado", description: `"${name}" está pronto para decolar.` })
+    toast({
+      title: "Fluxo criado",
+      description: `“${name}” está pronto no estúdio.`,
+    })
   }
 
   const deleteProject = (programId: string) => {
@@ -403,6 +453,25 @@ function LogicFlowStudio() {
       return next
     })
     toast({ title: "Projeto excluído" })
+  }
+
+  const saveFirstName = (name: string) => {
+    setPersisted((current) => {
+      const next = { ...current, firstName: name }
+      saveState(next)
+      return next
+    })
+  }
+
+  const signOut = () => {
+    runtimeRef.current.stop()
+    if (hydrated) persistGraph(nodes, edges)
+    setStudioOpen(false)
+    setPersisted((current) => {
+      const next = { ...current, firstName: undefined }
+      saveState(next)
+      return next
+    })
   }
 
   const exitToHub = () => {
@@ -481,15 +550,15 @@ function LogicFlowStudio() {
       openBlockConfig()
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canDockMission, nodes, reactFlowInstance, setNodes],
+    [canDockMission, nodes, reactFlowInstance, setNodes, firstName],
   )
 
   const sidePanel = (
     <Tabs value={rightTab} onValueChange={setRightTab} className="flex h-full flex-col">
-      <div className="border-b border-border px-3 pt-3">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="licao" className="font-display text-[11px] uppercase tracking-wider">Missão</TabsTrigger>
-          <TabsTrigger value="bloco" disabled={!selectedNode} className="font-display text-[11px] uppercase tracking-wider">
+      <div className="border-b border-border px-4 pt-4">
+        <TabsList className="grid h-11 w-full grid-cols-2">
+          <TabsTrigger value="licao">Aula</TabsTrigger>
+          <TabsTrigger value="bloco" disabled={!selectedNode}>
             Bloco
           </TabsTrigger>
         </TabsList>
@@ -515,7 +584,9 @@ function LogicFlowStudio() {
             onClose={() => (canDockMission ? setSelectedNodeId(null) : setMobilePanel(null))}
           />
         ) : (
-          <p className="p-4 text-sm text-muted-foreground">Clique em um bloco do canvas para configurar.</p>
+          <p className="p-4 text-sm text-muted-foreground">
+            Clique em um bloco do canvas para configurar.
+          </p>
         )}
       </TabsContent>
     </Tabs>
@@ -561,7 +632,7 @@ function LogicFlowStudio() {
 
   const speedControls = (
     <>
-      <div className="flex items-center justify-between gap-3 rounded-full border border-border bg-muted/50 px-3 py-1">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/50 px-3.5 py-2">
         <Label htmlFor="step-mode" className="text-xs text-muted-foreground">
           Passo a passo
         </Label>
@@ -601,56 +672,63 @@ function LogicFlowStudio() {
   if (!hydrated) {
     return (
       <div className="relative flex h-[100dvh] items-center justify-center space-bg text-muted-foreground">
-        <div className="pointer-events-none absolute inset-0 space-stars" aria-hidden />
-        <p className="font-display relative text-xs uppercase tracking-[0.24em] text-primary">Sincronizando hangar...</p>
+        <p className="relative text-sm text-muted-foreground">Abrindo o estúdio...</p>
       </div>
     )
   }
 
+  if (!firstName) {
+    return <WelcomeScreen onSubmit={saveFirstName} />
+  }
+
   if (!studioOpen) {
     return (
-      <ProjectHub
-        programs={persisted.programs}
-        currentProgramId={persisted.currentProgramId}
-        onOpen={openProject}
-        onCreate={createProject}
-        onDelete={deleteProject}
-      />
+      <UserNameProvider name={firstName}>
+        <ProjectHub
+          programs={persisted.programs}
+          currentProgramId={persisted.currentProgramId}
+          onOpen={openProject}
+          onCreate={createProject}
+          onDelete={deleteProject}
+          onSignOut={signOut}
+        />
+      </UserNameProvider>
     )
   }
 
   return (
+    <UserNameProvider name={firstName}>
     <div className="relative flex h-[100dvh] flex-col overflow-hidden space-bg">
-      <div className="pointer-events-none absolute inset-0 space-stars" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 hex-grid opacity-60" aria-hidden />
-      <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-border glass-panel px-2 py-2 sm:px-4">
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border-2 border-primary/50 bg-gradient-to-br from-amber-300 via-violet-500 to-cyan-400 text-base shadow-[0_0_20px_hsl(var(--primary)/0.4)] sm:h-10 sm:w-10 sm:text-lg">
-            🧑‍🚀
+      <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-card px-3 py-3 sm:px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary sm:h-10 sm:w-10">
+            <span className="font-display text-base text-[#d4b483] sm:text-lg">LF</span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-display hidden text-[9px] uppercase tracking-[0.28em] text-primary sm:block">Missão ativa</p>
+            <p className="hidden text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground sm:block">
+              Projeto
+            </p>
             <Input
               value={program?.name ?? "Meu programa"}
               onChange={(event) => renameProgram(event.target.value)}
               aria-label="Nome do programa"
-              className="font-display h-7 w-full border-none bg-transparent px-0 text-sm text-foreground shadow-none focus-visible:ring-0 sm:h-8 sm:text-base"
+              className="h-8 w-full border-none bg-transparent px-0 text-base font-medium text-foreground shadow-none focus-visible:ring-0 sm:h-9 sm:text-lg"
             />
           </div>
-          <Button size="sm" variant="outline" onClick={exitToHub} className="shrink-0 gap-1.5">
+          <Button size="sm" variant="outline" onClick={exitToHub} className="h-9 shrink-0 gap-1.5 px-3">
             <FolderKanban className="h-4 w-4" />
-            <span className="hidden sm:inline">Hangar</span>
+            <span className="hidden sm:inline">Projetos</span>
           </Button>
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end">
-          <div className="flex items-center gap-1 rounded-full border border-border bg-muted/40 p-0.5">
+        <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto sm:justify-end">
+          <div className="flex items-center gap-1 rounded-full border border-border bg-muted/40 p-1">
             <Button
               size="sm"
               variant={paletteVisible ? "secondary" : "ghost"}
               onClick={togglePalette}
               title="Blocos de lógica"
-              className="h-8 rounded-full px-2.5 sm:px-3"
+              className="h-9 rounded-full px-3"
             >
               <LayoutGrid className="h-4 w-4" />
               <span className="hidden md:inline">Blocos</span>
@@ -659,22 +737,22 @@ function LogicFlowStudio() {
               size="sm"
               variant={missionVisible ? "secondary" : "ghost"}
               onClick={toggleMission}
-              title="Missões e configuração"
-              className="h-8 rounded-full px-2.5 sm:px-3"
+              title="Aulas e configuração"
+              className="h-9 rounded-full px-3"
             >
               <GraduationCap className="h-4 w-4" />
-              <span className="hidden md:inline">Missão</span>
+              <span className="hidden md:inline">Aula</span>
             </Button>
           </div>
 
-          <div className="flex flex-1 items-center gap-1 rounded-full border border-border bg-muted/40 p-0.5 sm:flex-none">
+          <div className="flex flex-1 items-center gap-1 rounded-full border border-border bg-muted/40 p-1 sm:flex-none">
             {persisted.stepMode && (
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => runtimeRef.current.nextStep()}
                 title="Próximo passo"
-                className="h-8 rounded-full px-2.5"
+                className="h-9 rounded-full px-3"
               >
                 <SkipForward className="h-4 w-4" />
               </Button>
@@ -685,13 +763,13 @@ function LogicFlowStudio() {
                 size="sm"
                 variant="outline"
                 onClick={() => runtimeRef.current.pause()}
-                className="h-8 rounded-full px-3"
+                className="h-9 rounded-full px-3.5"
               >
                 <Pause className="h-4 w-4" />
                 <span className="hidden sm:inline">Pausar</span>
               </Button>
             ) : snapshot.status === "waiting-input" ? (
-              <Button size="sm" disabled className="h-8 rounded-full px-3">
+              <Button size="sm" disabled className="h-9 rounded-full px-3.5">
                 <span className="hidden sm:inline">Aguardando</span>
                 <span className="sm:hidden">...</span>
               </Button>
@@ -699,10 +777,10 @@ function LogicFlowStudio() {
               <Button
                 size="sm"
                 onClick={() => runtimeRef.current.play()}
-                className="h-8 rounded-full px-4 font-display uppercase tracking-wide"
+                className="h-9 rounded-full px-4"
               >
                 <Play className="h-4 w-4 fill-current" />
-                <span className="hidden sm:inline">{snapshot.status === "paused" ? "Continuar" : "Play"}</span>
+                <span className="hidden sm:inline">{snapshot.status === "paused" ? "Continuar" : "Executar"}</span>
               </Button>
             )}
 
@@ -712,7 +790,7 @@ function LogicFlowStudio() {
               onClick={() => runtimeRef.current.stop()}
               disabled={!busy && snapshot.status !== "done" && snapshot.status !== "error"}
               title="Parar execução"
-              className="h-8 rounded-full px-2.5 sm:px-3"
+              className="h-9 rounded-full px-3"
             >
               <RotateCcw className="h-4 w-4" />
               <span className="hidden sm:inline">Parar</span>
@@ -721,7 +799,7 @@ function LogicFlowStudio() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="ghost" title="Velocidade e passo a passo" className="h-8 w-8 rounded-full p-0 xl:hidden">
+              <Button size="sm" variant="ghost" title="Velocidade e passo a passo" className="h-9 w-9 rounded-full p-0 xl:hidden">
                 <Gauge className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
@@ -739,7 +817,7 @@ function LogicFlowStudio() {
 
       <div className="relative z-10 flex min-h-0 w-full flex-1 overflow-hidden">
         {paletteDocked && (
-          <aside className="glass-panel w-56 shrink-0 overflow-hidden border-r xl:w-64 2xl:w-72">
+          <aside className="glass-panel w-64 shrink-0 overflow-hidden border-r xl:w-72 2xl:w-80">
             <NodeLibrary onPick={addNodeAtCenter} />
           </aside>
         )}
@@ -778,11 +856,13 @@ function LogicFlowStudio() {
               deleteKeyCode={["Backspace", "Delete"]}
               defaultEdgeOptions={{
                 type: "custom",
-                markerEnd: { type: MarkerType.ArrowClosed, color: isDarkCanvas ? "#f5c84b" : "#d97706" },
+                markerEnd: { type: MarkerType.ArrowClosed, color: isDarkCanvas ? "#d4b483" : "#1f2a3a" },
               }}
               connectionLineType={ConnectionLineType.SmoothStep}
             >
-              <Background gap={22} color={isDarkCanvas ? "#3f3a1c" : "#d6b56a"} size={1.4} />
+              {persisted.showCanvasDots && (
+                <Background gap={24} color={isDarkCanvas ? "#2a3548" : "#e4dcd0"} size={1.2} />
+              )}
               <Controls showInteractive={false} />
               <MiniMap
                 className={showMiniMap ? undefined : "!hidden"}
@@ -796,6 +876,7 @@ function LogicFlowStudio() {
                     input: "#0ea5e9",
                     print: "#14b8a6",
                     condition: "#f59e0b",
+                    switch: "#eab308",
                     loop: "#f97316",
                     list: "#ec4899",
                     function: "#6366f1",
@@ -824,6 +905,26 @@ function LogicFlowStudio() {
                 <Trash2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Limpar</span>
               </Button>
+              <Button
+                className="pointer-events-auto px-2 sm:px-3"
+                size="sm"
+                variant="ghost"
+                onClick={autoLayoutNodes}
+                title="Reorganizar blocos automaticamente"
+              >
+                <AlignHorizontalSpaceAround className="h-4 w-4" />
+                <span className="hidden sm:inline">Auto ajustar</span>
+              </Button>
+              <Button
+                className="pointer-events-auto px-2 sm:px-3"
+                size="sm"
+                variant={persisted.showCanvasDots ? "secondary" : "ghost"}
+                onClick={toggleCanvasDots}
+                title={persisted.showCanvasDots ? "Ocultar bolinhas do fundo" : "Mostrar bolinhas do fundo"}
+              >
+                <CircleDot className="h-4 w-4" />
+                <span className="hidden sm:inline">Bolinhas</span>
+              </Button>
             </div>
           </div>
 
@@ -833,7 +934,7 @@ function LogicFlowStudio() {
         </div>
 
         {missionDocked && (
-          <aside className="glass-panel w-72 shrink-0 overflow-hidden border-l 2xl:w-80">{sidePanel}</aside>
+          <aside className="glass-panel w-80 shrink-0 overflow-hidden border-l 2xl:w-96">{sidePanel}</aside>
         )}
       </div>
 
@@ -861,11 +962,11 @@ function LogicFlowStudio() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === "reset" ? "Carregar exemplo inicial?" : "Limpar o canvas?"}
+              {confirmAction === "reset" ? "Carregar o exemplo inicial?" : "Limpar o canvas?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction === "reset"
-                ? "O fluxo atual será substituído pelo exemplo Olá, comandante. Alterações não salvas serão perdidas."
+                ? "O fluxo atual será substituído pelo exemplo inicial. Alterações não salvas serão perdidas."
                 : "Todos os blocos serão removidos e só o Início ficará no canvas. Essa ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -885,6 +986,7 @@ function LogicFlowStudio() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </UserNameProvider>
   )
 }
 
