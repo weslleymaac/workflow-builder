@@ -132,6 +132,7 @@ function LogicFlowStudio() {
   const [rightTab, setRightTab] = useState("licao")
   const [confirmAction, setConfirmAction] = useState<"reset" | "clear" | null>(null)
   const [studioOpen, setStudioOpen] = useState(false)
+  const [hubArriving, setHubArriving] = useState(false)
   const [snapshot, setSnapshot] = useState<RuntimeSnapshot>(runtimeRef.current.getSnapshot())
   // A paleta cabe antes do painel de missão, então cada um tem seu ponto de quebra.
   const canDockPalette = useMediaQuery("(min-width: 1024px)")
@@ -456,6 +457,7 @@ function LogicFlowStudio() {
   }
 
   const saveFirstName = (name: string) => {
+    setHubArriving(true)
     setPersisted((current) => {
       const next = { ...current, firstName: name }
       saveState(next)
@@ -467,6 +469,7 @@ function LogicFlowStudio() {
     runtimeRef.current.stop()
     if (hydrated) persistGraph(nodes, edges)
     setStudioOpen(false)
+    setHubArriving(false)
     setPersisted((current) => {
       const next = { ...current, firstName: undefined }
       saveState(next)
@@ -687,6 +690,7 @@ function LogicFlowStudio() {
         <ProjectHub
           programs={persisted.programs}
           currentProgramId={persisted.currentProgramId}
+          arriving={hubArriving}
           onOpen={openProject}
           onCreate={createProject}
           onDelete={deleteProject}

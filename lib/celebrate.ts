@@ -55,6 +55,47 @@ export function playSuccessChime() {
   tone(ctx, 1046.5, now + 0.24, 0.38, 0.09)
 }
 
+function whoosh(ctx: AudioContext, start: number) {
+  const length = Math.floor(ctx.sampleRate * 0.55)
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate)
+  const data = buffer.getChannelData(0)
+  for (let i = 0; i < length; i += 1) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / length)
+  }
+
+  const source = ctx.createBufferSource()
+  source.buffer = buffer
+  const filter = ctx.createBiquadFilter()
+  filter.type = "bandpass"
+  filter.Q.value = 0.7
+  filter.frequency.setValueAtTime(280, start)
+  filter.frequency.exponentialRampToValueAtTime(2200, start + 0.42)
+  const gain = ctx.createGain()
+  gain.gain.setValueAtTime(0.0001, start)
+  gain.gain.exponentialRampToValueAtTime(0.07, start + 0.06)
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.52)
+  source.connect(filter)
+  filter.connect(gain)
+  gain.connect(ctx.destination)
+  source.start(start)
+}
+
+export function playEnterStudio() {
+  const ctx = context()
+  if (!ctx) return
+  if (ctx.state === "suspended") void ctx.resume()
+
+  const now = ctx.currentTime
+  whoosh(ctx, now)
+  tone(ctx, 130.81, now, 0.7, 0.035)
+  tone(ctx, 196, now + 0.1, 0.65, 0.03)
+  tone(ctx, 261.63, now + 0.16, 0.28, 0.055)
+  tone(ctx, 329.63, now + 0.3, 0.28, 0.055)
+  tone(ctx, 392, now + 0.44, 0.32, 0.06)
+  tone(ctx, 523.25, now + 0.62, 0.48, 0.075)
+  tone(ctx, 659.25, now + 0.8, 0.55, 0.06)
+}
+
 function spawn(originX: number, originY: number, count: number) {
   const particles: Particle[] = []
   for (let i = 0; i < count; i += 1) {

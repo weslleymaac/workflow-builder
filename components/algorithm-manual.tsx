@@ -576,7 +576,7 @@ function CourseSidebar({
                             type="button"
                             onClick={() => onSelectStep(lesson, i)}
                             className={cn(
-                              "flex w-full items-start gap-2 rounded-full px-3 py-2.5 text-left text-sm leading-snug transition-colors",
+                              "flex w-full items-start gap-2 rounded-full px-3 py-2.5 text-left text-sm leading-snug transition-[background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
                               selected
                                 ? "bg-primary text-primary-foreground"
                                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -645,18 +645,22 @@ export default function AlgorithmManual({ open, onOpenChange }: AlgorithmManualP
 
   const go = useCallback(
     (nextIndex: number, dir: "next" | "prev") => {
-      if (animating || nextIndex < 0 || nextIndex >= total) return
+      if (animating || nextIndex === index || nextIndex < 0 || nextIndex >= total) return
+      setSelectedOption(null)
+      if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setIndex(nextIndex)
+        return
+      }
       setDirection(dir)
       setAnimating(true)
-      setSelectedOption(null)
       clearAnimTimer()
       animTimer.current = window.setTimeout(() => {
         setIndex(nextIndex)
         setAnimating(false)
         animTimer.current = null
-      }, 220)
+      }, 200)
     },
-    [animating, clearAnimTimer, total],
+    [animating, clearAnimTimer, index, total],
   )
 
   const next = useCallback(() => go(index + 1, "next"), [go, index])
@@ -743,7 +747,14 @@ export default function AlgorithmManual({ open, onOpenChange }: AlgorithmManualP
                 activeLesson={activeLesson}
                 activeStepId={step?.data.id}
                 onSelectLesson={(lesson) => openLesson(lesson)}
-                onSelectStep={(lesson, stepIndex) => openLesson(lesson, stepIndex)}
+                onSelectStep={(lesson, stepIndex) => {
+                  if (activeLesson?.id === lesson.id) {
+                    go(stepIndex, stepIndex > index ? "next" : "prev")
+                    setSidebarOpen(false)
+                    return
+                  }
+                  openLesson(lesson, stepIndex)
+                }}
               />
             </aside>
             {sidebarOpen && (

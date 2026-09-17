@@ -35,6 +35,7 @@ import { useSay } from "./user-name"
 interface ProjectHubProps {
   programs: SavedProgram[]
   currentProgramId?: string
+  arriving?: boolean
   onOpen: (programId: string) => void
   onCreate: (name: string) => void
   onDelete: (programId: string) => void
@@ -44,6 +45,7 @@ interface ProjectHubProps {
 export default function ProjectHub({
   programs,
   currentProgramId,
+  arriving = false,
   onOpen,
   onCreate,
   onDelete,
@@ -69,7 +71,7 @@ export default function ProjectHub({
   }
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden space-bg">
+    <div className={cn("relative flex h-[100dvh] flex-col overflow-hidden space-bg", arriving && "hub-arrive")}>
       <header className="relative z-10 flex items-center justify-between border-b border-border bg-card px-4 py-4 sm:px-8">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
@@ -101,7 +103,7 @@ export default function ProjectHub({
       <AlgorithmManual open={manualOpen} onOpenChange={setManualOpen} />
 
       <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col px-4 py-10 sm:px-6 sm:py-14">
-        <div className="animate-fade-up">
+        <div className={arriving ? undefined : "animate-fade-up"}>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Seus projetos</p>
           <h2 className="font-display mt-3 text-3xl text-foreground sm:text-4xl">
             {t("Olá, {name}")}

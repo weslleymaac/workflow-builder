@@ -219,12 +219,12 @@
   stroke-width: 0.18;
   stroke-linecap: round;
   stroke-dasharray: 2.4 2.8;
-  animation: welcome-dash 18s linear infinite;
+  animation: welcome-dash 48s linear infinite;
 }
 
 .welcome-path-slow {
   stroke: hsl(var(--primary) / 0.18);
-  animation-duration: 26s;
+  animation-duration: 72s;
   animation-direction: reverse;
 }
 
@@ -238,7 +238,19 @@
 
 .welcome-spark {
   fill: #d4b483;
-  filter: drop-shadow(0 0 0.6px #d4b483);
+  filter: drop-shadow(0 0 1.2px #d4b483);
+}
+
+.welcome-spark-a {
+  animation: welcome-spark-breathe 5.6s ease-in-out infinite;
+}
+
+.welcome-spark-b {
+  animation: welcome-spark-breathe 7.4s ease-in-out infinite 1.2s;
+}
+
+.welcome-spark-c {
+  animation: welcome-spark-breathe 6.8s ease-in-out infinite 2.4s;
 }
 
 .welcome-node {
@@ -327,6 +339,16 @@
   }
 }
 
+@keyframes welcome-spark-breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes welcome-node-float {
   0%,
   100% {
@@ -348,6 +370,310 @@
   }
 }
 
+.welcome-depart .welcome-chrome {
+  animation: welcome-fade-out 0.42s ease forwards;
+}
+
+.welcome-depart .welcome-stage {
+  animation: welcome-form-out 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.welcome-depart .welcome-motion-depart .welcome-orbit {
+  animation: welcome-orbit-expand 1.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.welcome-depart .welcome-motion-depart .welcome-node {
+  animation: welcome-node-out 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.welcome-depart .welcome-motion-depart .welcome-grid {
+  animation: welcome-fade-out 0.6s ease forwards;
+}
+
+.welcome-depart .welcome-motion-depart .welcome-orb-a {
+  animation: welcome-orb-bloom 1.5s ease forwards;
+}
+
+.welcome-depart .welcome-motion-depart .welcome-orb-b {
+  animation: welcome-orb-bloom 1.65s ease 0.05s forwards;
+}
+
+.welcome-depart .welcome-motion-depart .welcome-orb-c {
+  animation: welcome-orb-bloom 1.55s ease 0.1s forwards;
+}
+
+.welcome-bloom {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, hsl(var(--energy) / 0.42), transparent 42%),
+    radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.18), transparent 68%);
+  animation: welcome-bloom 2.2s ease forwards;
+}
+
+.welcome-portal-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 16;
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 9999px;
+  border: 1.5px solid #d4b483;
+  box-shadow: 0 0 24px hsl(var(--energy) / 0.35);
+  pointer-events: none;
+  animation: welcome-portal-expand 1.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.welcome-portal-a {
+  animation-delay: 0.08s;
+}
+
+.welcome-portal-b {
+  width: 4.2rem;
+  height: 4.2rem;
+  border-color: hsl(var(--primary) / 0.55);
+  animation-delay: 0.2s;
+}
+
+.welcome-portal-c {
+  width: 6.8rem;
+  height: 6.8rem;
+  border-width: 1px;
+  animation-delay: 0.32s;
+}
+
+.welcome-hello {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.welcome-hello-kicker {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  animation:
+    welcome-hello-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.48s both,
+    welcome-hello-out 0.5s ease 2.55s forwards;
+}
+
+.welcome-hello-name {
+  margin-top: 0.7rem;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(3rem, 10vw, 6.5rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: hsl(var(--foreground));
+  animation:
+    welcome-hello-name-in 0.95s cubic-bezier(0.16, 1, 0.3, 1) 0.58s both,
+    welcome-hello-out 0.55s ease 2.6s forwards;
+}
+
+.welcome-hello-sub {
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: hsl(var(--muted-foreground));
+  animation:
+    welcome-hello-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.76s both,
+    welcome-hello-out 0.5s ease 2.62s forwards;
+}
+
+.welcome-burst-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 18;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #d4b483;
+  box-shadow: 0 0 10px #d4b483;
+  pointer-events: none;
+  animation: welcome-burst 1.15s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+
+.hub-arrive header {
+  animation: hub-header-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hub-arrive main > :nth-child(1) {
+  animation: hub-rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.hub-arrive main > :nth-child(2) {
+  animation: hub-rise-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+}
+
+.hub-arrive main > :nth-child(3) {
+  animation: hub-rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.34s both;
+}
+
+@keyframes welcome-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes welcome-form-out {
+  to {
+    opacity: 0;
+    transform: scale(0.84) translateY(18px);
+    filter: blur(10px);
+  }
+}
+
+@keyframes welcome-orbit-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(-50%, -50%) scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.4);
+    opacity: 0;
+  }
+}
+
+@keyframes welcome-node-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+    filter: blur(8px);
+  }
+}
+
+@keyframes welcome-orb-bloom {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 0.9;
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes welcome-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  32% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes welcome-portal-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.18);
+    opacity: 0.85;
+  }
+  18% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(22);
+    opacity: 0;
+  }
+}
+
+@keyframes welcome-hello-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes welcome-hello-name-in {
+  from {
+    opacity: 0;
+    transform: scale(0.72) translateY(18px);
+    letter-spacing: 0.08em;
+    filter: blur(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    letter-spacing: -0.04em;
+    filter: blur(0);
+  }
+}
+
+@keyframes welcome-hello-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(8px);
+  }
+}
+
+@keyframes welcome-burst {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--burst-angle)) translateY(0) scale(0.35);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--burst-angle)) translateY(-46vmin) scale(0.15);
+    opacity: 0;
+  }
+}
+
+@keyframes hub-header-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hub-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 640px) {
   .welcome-node {
     display: none;
@@ -360,7 +686,20 @@
   .welcome-path,
   .welcome-node,
   .welcome-logo-ring,
-  .welcome-spark {
+  .welcome-spark,
+  .welcome-bloom,
+  .welcome-portal-ring,
+  .welcome-hello-kicker,
+  .welcome-hello-name,
+  .welcome-hello-sub,
+  .welcome-burst-spark,
+  .hub-arrive header,
+  .hub-arrive main > :nth-child(1),
+  .hub-arrive main > :nth-child(2),
+  .hub-arrive main > :nth-child(3),
+  .manual-ppt-enter,
+  .manual-ppt-exit-left,
+  .manual-ppt-exit-right {
     animation: none !important;
   }
 
@@ -878,39 +1217,26 @@
 }
 
 .manual-ppt-enter {
-  animation: manual-ppt-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: manual-ppt-fade-in 0.45s ease-out both;
 }
 
-.manual-ppt-exit-left {
-  animation: manual-ppt-out-left 0.28s ease-in forwards;
-}
-
+.manual-ppt-exit-left,
 .manual-ppt-exit-right {
-  animation: manual-ppt-out-right 0.28s ease-in forwards;
+  animation: manual-ppt-fade-out 0.2s ease-out forwards;
 }
 
-@keyframes manual-ppt-in {
+@keyframes manual-ppt-fade-in {
   from {
     opacity: 0;
-    transform: translateX(36px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 
-@keyframes manual-ppt-out-left {
+@keyframes manual-ppt-fade-out {
   to {
     opacity: 0;
-    transform: translateX(-32px);
-  }
-}
-
-@keyframes manual-ppt-out-right {
-  to {
-    opacity: 0;
-    transform: translateX(32px);
   }
 }
 

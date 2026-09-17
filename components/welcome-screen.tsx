@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { playEnterStudio } from "@/lib/celebrate"
 import { isValidFirstName, normalizeFirstName } from "@/lib/personalize"
 import { ThemeToggle } from "./theme-toggle"
 import { WelcomeMotion } from "./welcome-motion"
@@ -13,19 +14,44 @@ interface WelcomeScreenProps {
   onSubmit: (firstName: string) => void
 }
 
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+}
+
 export default function WelcomeScreen({ onSubmit }: WelcomeScreenProps) {
   const [raw, setRaw] = useState("")
+  const [phase, setPhase] = useState<"idle" | "departing">("idle")
+  const [lockedName, setLockedName] = useState("")
   const preview = normalizeFirstName(raw)
   const canContinue = isValidFirstName(preview)
+  const departing = phase === "departing"
+  const shownName = departing ? lockedName : preview
+  const onSubmitRef = useRef(onSubmit)
+  onSubmitRef.current = onSubmit
 
   const submit = () => {
-    if (!canContinue) return
-    onSubmit(preview)
+    if (!canContinue || departing) return
+    if (prefersReducedMotion()) {
+      onSubmit(preview)
+      return
+    }
+    setLockedName(preview)
+    setPhase("departing")
+    playEnterStudio()
   }
 
+  useEffect(() => {
+    if (!departing) return
+    const id = window.setTimeout(() => onSubmitRef.current(lockedName), 3180)
+    return () => window.clearTimeout(id)
+  }, [departing, lockedName])
+
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden space-bg">
-      <header className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-8">
+    <div
+      className={`relative flex h-[100dvh] flex-col overflow-hidden space-bg${departing ? " welcome-depart" : ""}`}
+      aria-busy={departing}
+    >
+      <header className="welcome-chrome relative z-10 flex items-center justify-between px-4 py-4 sm:px-8">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
             <span className="font-display text-lg text-[#d4b483]">LF</span>
@@ -38,13 +64,35 @@ export default function WelcomeScreen({ onSubmit }: WelcomeScreenProps) {
         <ThemeToggle />
       </header>
 
-      <WelcomeMotion />
+      <WelcomeMotion departing={departing} />
 
-      <main className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-4 pb-16">
+      {departing && (
+        <>
+          <div className="welcome-bloom" aria-hidden />
+          <span className="welcome-portal-ring welcome-portal-a" aria-hidden />
+          <span className="welcome-portal-ring welcome-portal-b" aria-hidden />
+          <span className="welcome-portal-ring welcome-portal-c" aria-hidden />
+          {Array.from({ length: 12 }, (_, index) => (
+            <span
+              key={index}
+              className="welcome-burst-spark"
+              style={{ "--burst-angle": `${index * 30}deg` } as CSSProperties}
+              aria-hidden
+            />
+          ))}
+          <div className="welcome-hello" aria-live="polite">
+            <p className="welcome-hello-kicker">Estúdio aberto</p>
+            <p className="welcome-hello-name">{shownName}</p>
+            <p className="welcome-hello-sub">Vamos começar.</p>
+          </div>
+        </>
+      )}
+
+      <main className="welcome-stage relative z-10 flex min-h-0 flex-1 items-center justify-center px-4 pb-16">
         <div className="welcome-glow pointer-events-none absolute inset-0" aria-hidden />
 
         <form
-          className="relative w-full max-w-md animate-fade-up text-center"
+          className="welcome-form relative w-full max-w-md animate-fade-up text-center"
           onSubmit={(event) => {
             event.preventDefault()
             submit()
@@ -77,6 +125,7 @@ export default function WelcomeScreen({ onSubmit }: WelcomeScreenProps) {
               spellCheck={false}
               maxLength={24}
               value={raw}
+              disabled={departing}
               placeholder="Ex: Ana"
               className="h-14 rounded-2xl border-border/80 bg-card px-5 text-center text-lg font-medium tracking-tight shadow-sm"
               onChange={(event) => {
@@ -96,7 +145,12 @@ export default function WelcomeScreen({ onSubmit }: WelcomeScreenProps) {
             )}
           </div>
 
-          <Button type="submit" size="lg" disabled={!canContinue} className="mt-6 h-12 w-full sm:w-auto sm:min-w-[220px]">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={!canContinue || departing}
+            className="mt-6 h-12 w-full sm:w-auto sm:min-w-[220px]"
+          >
             Entrar no estúdio
             <ArrowRight className="h-4 w-4" />
           </Button>
