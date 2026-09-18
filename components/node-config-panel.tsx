@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, type ReactNode } from "react"
-import { Check, ChevronsUpDown, X } from "lucide-react"
+import { Check, ChevronsUpDown, ChevronDown, ChevronUp, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -34,6 +34,7 @@ import type {
   ConditionRule,
   DataType,
   FunctionCategory,
+  InputQuestion,
   ListOperation,
   LoopType,
   SwitchCase,
@@ -45,10 +46,13 @@ import { VariableAutocompleteField, ExpressionField } from "@/components/variabl
 import { DATA_TYPE_LABEL, DATA_TYPE_TIP } from "@/lib/values"
 import { cn } from "@/lib/utils"
 import {
+  createInputQuestion,
   createVariableAssignment,
   createVariableDeclaration,
+  getInputQuestions,
   getVariableAssignments,
   getVariableDeclarations,
+  syncInputQuestions,
   syncVariableDeclarations,
 } from "@/lib/workflow-utils"
 
@@ -114,17 +118,10 @@ export default function NodeConfigPanel({
         )}
 
         {node.type === "input" && (
-          <>
-            <NameField
-              label="Guardar a resposta em"
-              value={node.data.variableName}
-              onChange={(value) => handleChange("variableName", value)}
-            />
-            <TypeField value={node.data.dataType} onChange={(value) => handleChange("dataType", value)} />
-            <Field label="Pergunta">
-              <Input value={node.data.prompt || ""} onChange={(event) => handleChange("prompt", event.target.value)} />
-            </Field>
-          </>
+          <InputQuestionsFields
+            questions={getInputQuestions(node.data)}
+            onBatchChange={handleBatchChange}
+          />
         )}
 
         {node.type === "print" && (
@@ -836,6 +833,131 @@ function OperationAssignmentsFields({
         onClick={() => updateAll([...assignments, createVariableAssignment()])}
       >
         + Adicionar processamento
+      </Button>
+    </div>
+  )
+}
+
+function InputQuestionsFields({
+  questions,
+  onBatchChange,
+}: {
+  questions: InputQuestion[]
+  onBatchChange: (updates: Record<string, unknown>) => void
+}) {
+  const updateAll = (next: InputQuestion[]) => {
+    onBatchChange(syncInputQuestions(next))
+  }
+
+  const updateOne = (id: string, patch: Partial<InputQuestion>) => {
+    updateAll(questions.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  }
+
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction
+    if (target < 0 || target >= questions.length) return
+    const next = [...questions]
+    const [item] = next.splice(index, 1)
+    next.splice(target, 0, item)
+    updateAll(next)
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label>Perguntas</Label>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          O programa faz cada pergunta em sequência e guarda as respostas.
+        </p>
+      </div>
+
+      {questions.map((item, index) => (
+        <div key={item.id} className="space-y-3 rounded-xl border border-border bg-background p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Pergunta {index + 1}
+            </p>
+            <div className="flex shrink-0 items-center gap-0.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 px-0"
+                disabled={index === 0}
+                title="Mover para cima"
+                onClick={() => move(index, -1)}
+              >
+                <ChevronUp className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 px-0"
+                disabled={index === questions.length - 1}
+                title="Mover para baixo"
+                onClick={() => move(index, 1)}
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+              {questions.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-destructive hover:text-destructive"
+                  onClick={() => updateAll(questions.filter((entry) => entry.id !== item.id))}
+                >
+                  Remover
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <Field label="Pergunta">
+            <Input
+              value={item.prompt}
+              placeholder="Ex: Qual é a sua idade?"
+              onChange={(event) => updateOne(item.id, { prompt: event.target.value })}
+            />
+          </Field>
+
+          <Field label="Guardar a resposta em" hint="Sem espaços. Ex: idade, soma, fruta">
+            <Input
+              value={item.variableName}
+              placeholder="ex: idade"
+              onChange={(event) => updateOne(item.id, { variableName: event.target.value })}
+            />
+          </Field>
+
+          <Field label="Tipo" hint={DATA_TYPE_TIP[item.dataType]}>
+            <Select
+              value={item.dataType}
+              onValueChange={(value) => updateOne(item.id, { dataType: value as DataType })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(DATA_TYPE_LABEL) as DataType[]).map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {DATA_TYPE_LABEL[type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={() => updateAll([...questions, createInputQuestion()])}
+      >
+        + Adicionar pergunta
       </Button>
     </div>
   )

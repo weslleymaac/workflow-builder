@@ -151,7 +151,7 @@ export const NODE_CATALOG: NodeCatalogItem[] = [
     type: "input",
     label: "Perguntar",
     description: "Ler um valor",
-    tip: "Pausa o programa e pede um valor para a pessoa.",
+    tip: "Adicione uma ou várias perguntas. O programa pede cada uma em sequência.",
     group: "dados",
     accent: "sky",
   },

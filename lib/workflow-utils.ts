@@ -4,6 +4,7 @@ import { getCatalogItem } from "./node-catalog"
 import type { TypedVariable } from "./condition"
 import type {
   DataType,
+  InputQuestion,
   LogicNodeType,
   NodeData,
   VariableAssignment,
@@ -254,13 +255,20 @@ const defaultData = (type: LogicNodeType): NodeData => {
           }),
         ],
       }
-    case "input":
-      return {
-        ...base,
+    case "input": {
+      const first = createInputQuestion({
         variableName: "idade",
         dataType: "numero",
         prompt: "Qual é a sua idade?",
+      })
+      return {
+        ...base,
+        questions: [first],
+        variableName: first.variableName,
+        dataType: first.dataType,
+        prompt: first.prompt,
       }
+    }
     case "print":
       return { ...base, template: "Olá, mundo!" }
     case "condition":
@@ -342,8 +350,10 @@ export const collectProgramVariables = (nodes: WorkflowNode[]): TypedVariable[] 
       }
     }
 
-    if (node.type === "input" && data.variableName?.trim()) {
-      setVar(data.variableName, data.dataType ?? "texto")
+    if (node.type === "input") {
+      for (const item of getInputQuestions(data)) {
+        setVar(item.variableName, item.dataType)
+      }
     }
 
     if (node.type === "list" && data.listName?.trim()) {
@@ -449,6 +459,40 @@ export function getVariableAssignments(data: NodeData): VariableAssignment[] {
     ]
   }
   return [createVariableAssignment()]
+}
+
+export function createInputQuestion(
+  partial?: Partial<Omit<InputQuestion, "id">> & { id?: string },
+): InputQuestion {
+  return {
+    id: partial?.id ?? `q-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    prompt: partial?.prompt ?? "",
+    variableName: partial?.variableName ?? "",
+    dataType: partial?.dataType ?? "texto",
+  }
+}
+
+/** Normaliza bloco Perguntar legado (1 pergunta) para lista. */
+export function getInputQuestions(data: NodeData): InputQuestion[] {
+  if (data.questions && data.questions.length > 0) return data.questions
+  return [
+    createInputQuestion({
+      id: "legacy",
+      prompt: data.prompt ?? "",
+      variableName: data.variableName ?? "",
+      dataType: data.dataType ?? "texto",
+    }),
+  ]
+}
+
+export function syncInputQuestions(questions: InputQuestion[]) {
+  const first = questions[0]
+  return {
+    questions,
+    prompt: first?.prompt ?? "",
+    variableName: first?.variableName ?? "",
+    dataType: first?.dataType ?? "texto",
+  }
 }
 
 /** Conta quantas variáveis nomeadas existem nos blocos Variável do fluxo. */

@@ -25,8 +25,13 @@ export default function RuntimePanel({ snapshot, onSubmitInput }: RuntimePanelPr
   }, [snapshot.logs.length])
 
   useEffect(() => {
-    if (snapshot.status === "waiting-input") setAnswer("")
-  }, [snapshot.status])
+    if (snapshot.inputPrompt) setAnswer("")
+  }, [
+    snapshot.inputPrompt?.nodeId,
+    snapshot.inputPrompt?.variableName,
+    snapshot.inputPrompt?.message,
+    snapshot.inputPrompt?.dataType,
+  ])
 
   const entries = Object.entries(snapshot.memory)
 
@@ -112,7 +117,9 @@ export default function RuntimePanel({ snapshot, onSubmitInput }: RuntimePanelPr
           className="flex items-center gap-2 border-t border-border bg-muted/40 p-3"
           onSubmit={(event) => {
             event.preventDefault()
-            onSubmitInput(answer)
+            const value = answer
+            setAnswer("")
+            onSubmitInput(value)
           }}
         >
           <div className="min-w-0 flex-1">
@@ -122,6 +129,7 @@ export default function RuntimePanel({ snapshot, onSubmitInput }: RuntimePanelPr
             <p className="truncate text-sm text-foreground">{snapshot.inputPrompt.message}</p>
           </div>
           <Input
+            key={`${snapshot.inputPrompt.nodeId}-${snapshot.inputPrompt.variableName}-${snapshot.inputPrompt.message}`}
             autoFocus
             value={answer}
             onChange={(event) => setAnswer(event.target.value)}

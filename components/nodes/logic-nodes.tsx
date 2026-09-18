@@ -19,7 +19,7 @@ import { FUNCTION_CATEGORY_LABEL, categoryOf, findFunction } from "@/lib/functio
 import { formatConditionsDisplay, getConditionRules } from "@/lib/condition"
 import type { NodeData } from "@/lib/types"
 import { DATA_TYPE_LABEL } from "@/lib/values"
-import { getVariableAssignments, getVariableDeclarations } from "@/lib/workflow-utils"
+import { getInputQuestions, getVariableAssignments, getVariableDeclarations } from "@/lib/workflow-utils"
 import { LogicNode } from "./logic-node"
 
 export const StartNode = memo(({ data, selected }: NodeProps<NodeData>) => (
@@ -134,18 +134,41 @@ export const OperationNode = memo(({ data, selected }: NodeProps<NodeData>) => {
 })
 OperationNode.displayName = "OperationNode"
 
-export const InputNode = memo(({ data, selected }: NodeProps<NodeData>) => (
-  <LogicNode
-    accent="sky"
-    icon={<MessageCircleQuestion className="h-4 w-4" />}
-    title={data.label || "Perguntar"}
-    subtitle={`Guarda em ${data.variableName || "variável"}`}
-    selected={selected}
-    running={data.running}
-  >
-    {data.prompt || "Digite um valor"}
-  </LogicNode>
-))
+export const InputNode = memo(({ data, selected }: NodeProps<NodeData>) => {
+  const questions = getInputQuestions(data).filter(
+    (item) => item.prompt.trim() || item.variableName.trim(),
+  )
+  const visible = questions.slice(0, 3)
+  const extra = Math.max(questions.length - visible.length, 0)
+
+  return (
+    <LogicNode
+      accent="sky"
+      icon={<MessageCircleQuestion className="h-4 w-4" />}
+      title={data.label || "Perguntar"}
+      subtitle={
+        questions.length > 1
+          ? `${questions.length} perguntas`
+          : `Guarda em ${questions[0]?.variableName || data.variableName || "variável"}`
+      }
+      selected={selected}
+      running={data.running}
+    >
+      {visible.length === 0 ? (
+        <span>Digite um valor</span>
+      ) : (
+        <div className="space-y-1">
+          {visible.map((item) => (
+            <div key={item.id} className="leading-snug">
+              {item.prompt || "Pergunta"} → {item.variableName || "?"}
+            </div>
+          ))}
+          {extra > 0 && <div className="text-muted-foreground">+{extra} mais</div>}
+        </div>
+      )}
+    </LogicNode>
+  )
+})
 InputNode.displayName = "InputNode"
 
 export const PrintNode = memo(({ data, selected }: NodeProps<NodeData>) => (

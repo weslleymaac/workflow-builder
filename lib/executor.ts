@@ -7,7 +7,7 @@ import {
 } from "./condition"
 import { evaluateUserExpression, interpolateTemplate, parseListItems } from "./expression"
 import { callFunction, callMethodFunction, findFunction } from "./functions"
-import { getVariableAssignments, getVariableDeclarations } from "./workflow-utils"
+import { getInputQuestions, getVariableAssignments, getVariableDeclarations } from "./workflow-utils"
 import type {
   RuntimeSnapshot,
   RuntimeStatus,
@@ -310,29 +310,38 @@ export class LogicRuntime {
   }
 
   private async readInput(node: WorkflowNode, token: number) {
-    const name = this.requireName(node.data.variableName, "Dê um nome para guardar a resposta.")
-    const dataType = node.data.dataType ?? "texto"
-    const message = node.data.prompt?.trim() || `Digite um valor para ${name}`
+    const questions = getInputQuestions(node.data)
+    if (questions.every((item) => !item.variableName.trim())) {
+      throw new Error("Dê um nome para guardar pelo menos uma resposta.")
+    }
 
-    this.patch({
-      status: "waiting-input",
-      inputPrompt: { nodeId: node.id, variableName: name, dataType, message },
-      logs: this.pushLog("info", `Aguardando resposta: ${message}`),
-    })
+    for (const item of questions) {
+      const name = item.variableName.trim()
+      if (!name) continue
+      this.requireName(name, "Dê um nome para guardar a resposta.")
+      const dataType = item.dataType ?? "texto"
+      const message = item.prompt?.trim() || `Digite um valor para ${name}`
 
-    const raw = await new Promise<string>((resolve) => {
-      this.inputGate = resolve
-    })
+      this.patch({
+        status: "waiting-input",
+        inputPrompt: { nodeId: node.id, variableName: name, dataType, message },
+        logs: this.pushLog("info", `Aguardando resposta: ${message}`),
+      })
 
-    if (token !== this.runToken) return
+      const raw = await new Promise<string>((resolve) => {
+        this.inputGate = resolve
+      })
 
-    const value = coerceInput(raw, dataType)
-    this.write(name, value)
-    this.patch({
-      status: "running",
-      inputPrompt: null,
-      logs: this.pushLog("info", `${name} recebeu ${formatValue(value)}.`),
-    })
+      if (token !== this.runToken) return
+
+      const value = coerceInput(raw, dataType)
+      this.write(name, value)
+      this.patch({
+        status: "running",
+        inputPrompt: null,
+        logs: this.pushLog("info", `${name} recebeu ${formatValue(value)}.`),
+      })
+    }
   }
 
   private print(node: WorkflowNode) {

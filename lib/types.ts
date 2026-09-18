@@ -46,6 +46,14 @@ export interface VariableAssignment {
   functionArgs?: string[]
 }
 
+/** Pergunta do bloco Perguntar (pode haver várias em sequência). */
+export interface InputQuestion {
+  id: string
+  prompt: string
+  variableName: string
+  dataType: DataType
+}
+
 export interface SwitchCase {
   id: string
   matchExpr: string
@@ -94,6 +102,8 @@ export interface NodeData {
   /** Atribuições do bloco Processar (atualiza variáveis existentes) */
   assignments?: VariableAssignment[]
   prompt?: string
+  /** Várias perguntas no mesmo bloco Perguntar */
+  questions?: InputQuestion[]
 
   leftExpr?: string
   operator?: CompareOperator
