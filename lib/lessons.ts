@@ -1,4 +1,5 @@
 import type { Lesson, RuntimeSnapshot, WorkflowNode } from "./types"
+import { countDeclaredVariables } from "./workflow-utils"
 
 export const LESSONS: Lesson[] = [
   {
@@ -88,7 +89,7 @@ export function lessonProgress(lesson: Lesson, nodes: WorkflowNode[], snapshot: 
 
   if (lesson.id === "variaveis") {
     return [
-      { label: "Criou pelo menos duas variáveis", done: nodes.filter((node) => node.type === "variable").length >= 2 },
+      { label: "Criou pelo menos duas variáveis", done: countDeclaredVariables(nodes) >= 2 },
       { label: "Trabalhou com números", done: memory.some((value) => value.type === "numero") },
       { label: "Mostrou o resultado", done: prints > 0 },
     ]

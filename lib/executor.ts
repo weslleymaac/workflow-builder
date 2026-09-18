@@ -6,7 +6,8 @@ import {
   getConditionRules,
 } from "./condition"
 import { evaluateUserExpression, interpolateTemplate, parseListItems } from "./expression"
-import { callFunction, findFunction } from "./functions"
+import { callFunction, callMethodFunction, findFunction } from "./functions"
+import { getVariableAssignments, getVariableDeclarations } from "./workflow-utils"
 import type {
   RuntimeSnapshot,
   RuntimeStatus,
@@ -200,6 +201,9 @@ export class LogicRuntime {
       case "variable":
         this.assignVariable(node)
         return this.next(node)
+      case "operation":
+        this.applyOperation(node)
+        return this.next(node)
       case "input":
         await this.readInput(node, token)
         return this.next(node)
@@ -223,12 +227,86 @@ export class LogicRuntime {
   }
 
   private assignVariable(node: WorkflowNode) {
-    const name = this.requireName(node.data.variableName, "Dê um nome para a variável.")
-    const expr = node.data.valueExpr?.trim()
-    if (!expr) throw new Error(`A variável "${name}" precisa de um valor.`)
-    const value = evaluateUserExpression(expr, this.snapshot.memory)
-    this.write(name, value)
-    this.info(`${name} agora é ${formatValue(value)} (${value.type}).`)
+    const declarations = getVariableDeclarations(node.data).map((item) => ({ ...item }))
+    if (declarations.every((item) => !item.name.trim())) {
+      throw new Error("Dê um nome para pelo menos uma variável.")
+    }
+
+    for (const item of declarations) {
+      const name = item.name.trim()
+      if (!name) continue
+      this.requireName(name, "Dê um nome para a variável.")
+      const expr = item.valueExpr?.trim()
+      if (!expr) throw new Error(`A variável "${name}" precisa de um valor.`)
+
+      try {
+        const value =
+          item.dataType === "lista"
+            ? parseListItems(expr, this.snapshot.memory)
+            : evaluateUserExpression(expr, this.snapshot.memory)
+        this.write(name, value)
+        this.info(`${name} agora é ${formatValue(value)} (${value.type}).`)
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "valor inválido"
+        throw new Error(`Na variável "${name}": ${detail}`)
+      }
+    }
+  }
+
+  private applyOperation(node: WorkflowNode) {
+    const assignments = getVariableAssignments(node.data)
+    if (assignments.every((item) => !item.targetVar.trim())) {
+      throw new Error("Escolha pelo menos uma variável para processar.")
+    }
+
+    for (const item of assignments) {
+      const name = item.targetVar.trim()
+      if (!name) continue
+      this.requireName(name, "Escolha a variável que vai mudar.")
+
+      const current = this.snapshot.memory[name]
+      if (!current) {
+        throw new Error(
+          `A variável "${name}" ainda não existe. Crie ela no bloco Variável ou Perguntar antes.`,
+        )
+      }
+
+      try {
+        if (item.mode === "function") {
+          const fn = findFunction(item.functionName)
+          if (!fn) throw new Error(`Escolha uma função para "${name}".`)
+
+          const extraParams = fn.params.slice(1)
+          const extraArgs = extraParams.map((param, index) => {
+            const source = item.functionArgs?.[index]?.trim()
+            if (!source) {
+              throw new Error(`Falta preencher "${param.label}" na função ${fn.name}().`)
+            }
+            return evaluateUserExpression(source, this.snapshot.memory)
+          })
+
+          const value = callMethodFunction(current, fn.name, extraArgs)
+          this.write(name, value)
+          this.info(
+            `${name} ← ${fn.name}(${[name, ...extraArgs.map((arg) => formatValue(arg))].join(", ")}) → ${formatValue(value)}`,
+          )
+          continue
+        }
+
+        const expr = item.valueExpr?.trim()
+        if (!expr) throw new Error(`Diga o novo valor de "${name}".`)
+
+        const value =
+          current.type === "lista"
+            ? parseListItems(expr, this.snapshot.memory)
+            : evaluateUserExpression(expr, this.snapshot.memory)
+        this.write(name, value)
+        this.info(`${name} atualizada: ${formatValue(value)} (${value.type}).`)
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "valor inválido"
+        throw new Error(`Ao processar "${name}": ${detail}`)
+      }
+    }
   }
 
   private async readInput(node: WorkflowNode, token: number) {

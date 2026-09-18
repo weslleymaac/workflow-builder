@@ -37,39 +37,71 @@ export function LogicNode({
     return Position.Right
   }
 
+  const edgeStyle = (side?: "left" | "right" | "top" | "bottom", extra?: CSSProperties): CSSProperties => {
+    if (side === "left") {
+      return { top: "50%", left: -6, right: "auto", transform: "translateY(-50%)", ...extra }
+    }
+    if (side === "top") {
+      return { top: -6, left: "50%", bottom: "auto", transform: "translateX(-50%)", ...extra }
+    }
+    if (side === "bottom") {
+      return { bottom: -6, left: "50%", top: "auto", transform: "translateX(-50%)", ...extra }
+    }
+    // right (default)
+    return { top: "50%", right: -6, left: "auto", transform: "translateY(-50%)", ...extra }
+  }
+
   return (
     <div
       className={cn(
-        "logic-node-shell min-w-[210px] max-w-[280px] rounded-2xl border bg-card px-3.5 py-3 transition-all",
+        "logic-node-shell relative min-w-[210px] max-w-[300px] rounded-2xl border bg-card px-3.5 py-3 transition-shadow",
         colors.border,
         selected && "shadow-xl",
         running && cn("running-node ring-2 ring-offset-0", colors.ring),
       )}
     >
       {target && (
-        <Handle type="target" position={Position.Left} className={cn("h-3 w-3", colors.handle)} />
+        <Handle
+          type="target"
+          position={Position.Left}
+          style={edgeStyle("left")}
+          className={cn("!h-3.5 !w-3.5 cursor-crosshair", colors.handle)}
+        />
       )}
 
       <div className="flex items-center gap-3">
         <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", colors.icon)}>{icon}</div>
-        <div className="min-w-0 space-y-0.5">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <div className="truncate text-[15px] font-medium text-foreground">{title}</div>
           {subtitle && <div className="truncate text-sm leading-relaxed text-muted-foreground">{subtitle}</div>}
         </div>
       </div>
 
-      {children && <div className={cn("mt-3 rounded-xl px-2.5 py-1.5 text-sm leading-relaxed", colors.soft, colors.text)}>{children}</div>}
+      {children && (
+        <div
+          className={cn(
+            "mt-3 min-w-0 overflow-hidden rounded-xl px-2.5 py-1.5 text-sm leading-snug",
+            colors.soft,
+            colors.text,
+          )}
+        >
+          <div className="break-words [overflow-wrap:anywhere]">{children}</div>
+        </div>
+      )}
 
-      {sources.map((source, index) => (
-        <Handle
-          key={`${source.id ?? "source"}-${index}`}
-          type="source"
-          id={source.id}
-          position={handlePosition(source.position)}
-          style={source.style}
-          className={cn("h-3 w-3", source.colorClass ?? colors.handle)}
-        />
-      ))}
+      {sources.map((source, index) => {
+        const side = source.position ?? "right"
+        return (
+          <Handle
+            key={`${source.id ?? "source"}-${index}`}
+            type="source"
+            id={source.id}
+            position={handlePosition(side)}
+            style={edgeStyle(side, source.style)}
+            className={cn("!h-3.5 !w-3.5 cursor-crosshair", source.colorClass ?? colors.handle)}
+          />
+        )
+      })}
     </div>
   )
 }

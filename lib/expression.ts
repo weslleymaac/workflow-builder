@@ -1,4 +1,4 @@
-import { callFunction } from "./functions"
+import { callFunction, callMethodFunction, callPackageFunction, resolveFunctionPackage } from "./functions"
 import type { RuntimeValue } from "./types"
 import { asBoolean, asNumber, asString, cloneValue, valuesAreEqual } from "./values"
 
@@ -17,7 +17,7 @@ type Token =
   | { kind: "eof" }
 
 const TWO_CHAR_OPS = ["==", "!=", ">=", "<=", "&&", "||"]
-const ONE_CHAR_OPS = ["+", "-", "*", "/", "%", ">", "<", "!", "(", ")", "[", "]", ","]
+const ONE_CHAR_OPS = ["+", "-", "*", "/", "%", "&", ">", "<", "!", "(", ")", "[", "]", ","]
 
 function tokenize(source: string): Token[] {
   const tokens: Token[] = []
@@ -65,6 +65,7 @@ function tokenize(source: string): Token[] {
       continue
     }
 
+    // Número antes do ponto de método, para não quebrar 3.7
     if (/[0-9]/.test(char) || (char === "." && /[0-9]/.test(source[i + 1] ?? ""))) {
       const start = i
       while (i < source.length && /[0-9.]/.test(source[i])) i += 1
@@ -77,10 +78,31 @@ function tokenize(source: string): Token[] {
       continue
     }
 
+    if (char === ".") {
+      tokens.push({ kind: "op", value: "." })
+      i += 1
+      continue
+    }
+
+    // Pacotes: $Texto, $Numero, $Lista
+    if (char === "$" && /[A-Za-zÀ-ÿ_]/.test(source[i + 1] ?? "")) {
+      const start = i
+      i += 1
+      while (i < source.length && /[A-Za-zÀ-ÿ0-9_]/.test(source[i])) i += 1
+      tokens.push({ kind: "ident", value: source.slice(start, i) })
+      continue
+    }
+
     if (/[A-Za-zÀ-ÿ_]/.test(char)) {
       const start = i
       while (i < source.length && /[A-Za-zÀ-ÿ0-9_]/.test(source[i])) i += 1
-      tokens.push({ kind: "ident", value: source.slice(start, i) })
+      const value = source.slice(start, i)
+      // "mod" é alias didático de % (resto da divisão)
+      if (value.toLowerCase() === "mod") {
+        tokens.push({ kind: "op", value: "%" })
+      } else {
+        tokens.push({ kind: "ident", value })
+      }
       continue
     }
 
@@ -169,6 +191,10 @@ class Parser {
           type: "numero",
           value: asNumber(left, "Subtração") - asNumber(right, "Subtração"),
         }
+      } else if (this.match("&")) {
+        // Concatenação explícita de texto (&& continua sendo E lógico)
+        const right = this.parseMul()
+        left = { type: "texto", value: asString(left) + asString(right) }
       } else {
         break
       }
@@ -214,21 +240,53 @@ class Parser {
 
   private parsePostfix(): RuntimeValue {
     let value = this.parsePrimary()
-    while (this.match("[")) {
-      const indexValue = this.parseOr()
-      this.expect("]", "Faltou ] para acessar o item da lista.")
-      if (value.type !== "lista") {
-        throw new ExpressionError("Só listas podem usar [índice].")
+    while (true) {
+      if (this.match("[")) {
+        const indexValue = this.parseOr()
+        this.expect("]", "Faltou ] para acessar o item da lista.")
+        if (value.type !== "lista") {
+          throw new ExpressionError("Só listas podem usar [índice].")
+        }
+        const index = Math.trunc(asNumber(indexValue, "Índice da lista"))
+        if (index < 0 || index >= value.value.length) {
+          throw new ExpressionError(
+            `A lista não tem o índice ${index}. Ela tem ${value.value.length} item(ns), de 0 a ${Math.max(value.value.length - 1, 0)}.`,
+          )
+        }
+        value = cloneValue(value.value[index])
+        continue
       }
-      const index = Math.trunc(asNumber(indexValue, "Índice da lista"))
-      if (index < 0 || index >= value.value.length) {
-        throw new ExpressionError(
-          `A lista não tem o índice ${index}. Ela tem ${value.value.length} item(ns), de 0 a ${Math.max(value.value.length - 1, 0)}.`,
-        )
+
+      if (this.match(".")) {
+        const methodToken = this.peek()
+        if (methodToken.kind !== "ident") {
+          throw new ExpressionError("Depois do ponto, digite o nome da função. Ex: nome.maiuscula()")
+        }
+        this.index += 1
+        const methodName = methodToken.value
+        const args = this.match("(") ? this.parseArgumentList(methodName) : []
+        try {
+          value = callMethodFunction(value, methodName, args)
+        } catch (error) {
+          throw new ExpressionError(error instanceof Error ? error.message : `Erro em .${methodName}()`)
+        }
+        continue
       }
-      value = cloneValue(value.value[index])
+
+      break
     }
     return value
+  }
+
+  private parseArgumentList(fnName: string): RuntimeValue[] {
+    const args: RuntimeValue[] = []
+    if (!this.check(")")) {
+      do {
+        args.push(this.parseOr())
+      } while (this.match(","))
+    }
+    this.expect(")", `Faltou ) na função ${fnName}.`)
+    return args
   }
 
   private parsePrimary(): RuntimeValue {
@@ -267,14 +325,31 @@ class Parser {
       const literal = this.boolLiteral(name)
       if (literal) return literal
 
-      if (this.match("(")) {
-        const args: RuntimeValue[] = []
-        if (!this.check(")")) {
-          do {
-            args.push(this.parseOr())
-          } while (this.match(","))
+      // Pacote: $Numero.arredondar(3.7) ou $Texto.maiuscula("ana")
+      const pkg = resolveFunctionPackage(name)
+      if (pkg) {
+        this.expect(".", `Use ${pkg.name}.função(...). Ex: ${pkg.name === "$Texto" ? '$Texto.maiuscula("ana")' : pkg.name === "$Lista" ? "$Lista.tamanho(lista)" : "$Numero.arredondar(3.7)"}`)
+        const methodToken = this.peek()
+        if (methodToken.kind !== "ident") {
+          throw new ExpressionError(`Depois de ${pkg.name}. digite o nome da função.`)
         }
-        this.expect(")", `Faltou ) na função ${name}.`)
+        this.index += 1
+        const methodName = methodToken.value
+        if (!this.match("(")) {
+          throw new ExpressionError(`Faltou ( depois de ${pkg.name}.${methodName}.`)
+        }
+        const args = this.parseArgumentList(methodName)
+        try {
+          return callPackageFunction(pkg.name, methodName, args)
+        } catch (error) {
+          throw new ExpressionError(
+            error instanceof Error ? error.message : `Erro em ${pkg.name}.${methodName}()`,
+          )
+        }
+      }
+
+      if (this.match("(")) {
+        const args = this.parseArgumentList(name)
         return this.callFunction(name, args)
       }
 
@@ -356,7 +431,14 @@ export function evaluateUserExpression(source: string, memory: Record<string, Ru
 }
 
 export function interpolateTemplate(template: string, memory: Record<string, RuntimeValue>): string {
-  return template.replace(/\{([^}]+)\}/g, (_, expr: string) => asString(evaluateExpression(expr.trim(), memory)))
+  return template.replace(/\{([^}]+)\}/g, (_, expr: string) => {
+    try {
+      return asString(evaluateExpression(expr.trim(), memory))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Expressão inválida."
+      throw new ExpressionError(`Em {${expr.trim()}}: ${message}`)
+    }
+  })
 }
 
 export function parseListItems(

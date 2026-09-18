@@ -3,6 +3,7 @@
 import type React from "react"
 import {
   Boxes,
+  Cog,
   Flag,
   FunctionSquare,
   GitBranch,
@@ -28,6 +29,7 @@ const ICONS = {
   start: Play,
   end: Flag,
   variable: Variable,
+  operation: Cog,
   input: MessageCircleQuestion,
   print: Speech,
   condition: GitBranch,

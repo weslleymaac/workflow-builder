@@ -19,6 +19,7 @@ export type NodeAccent =
   | "pink"
   | "teal"
   | "indigo"
+  | "rose"
 
 export const NODE_ACCENTS: Record<
   NodeAccent,
@@ -103,6 +104,14 @@ export const NODE_ACCENTS: Record<
     text: "text-indigo-700 dark:text-indigo-200",
     ring: "ring-indigo-400/60",
   },
+  rose: {
+    border: "border-rose-400/70",
+    soft: "bg-rose-500/10",
+    icon: "bg-rose-600 text-white",
+    handle: "!bg-rose-400 !border-rose-300/50",
+    text: "text-rose-700 dark:text-rose-200",
+    ring: "ring-rose-400/60",
+  },
 }
 
 export const NODE_CATALOG: NodeCatalogItem[] = [
@@ -126,9 +135,17 @@ export const NODE_CATALOG: NodeCatalogItem[] = [
     type: "variable",
     label: "Variável",
     description: "Guardar um valor",
-    tip: "Variável é uma caixinha com nome. Ex: idade = 18",
+    tip: "Defina uma ou várias variáveis: nome, tipo e valor.",
     group: "dados",
     accent: "violet",
+  },
+  {
+    type: "operation",
+    label: "Processar",
+    description: "Alterar uma variável",
+    tip: "Escolha uma variável e aplique uma função do tipo dela, ou use uma expressão livre.",
+    group: "dados",
+    accent: "rose",
   },
   {
     type: "input",

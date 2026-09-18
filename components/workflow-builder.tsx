@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react"
 import ReactFlow, {
   Background,
   ConnectionLineType,
@@ -14,6 +14,7 @@ import ReactFlow, {
   type Connection,
   type Edge,
   type Node,
+  type OnConnectStartParams,
   MarkerType,
 } from "reactflow"
 import {
@@ -22,7 +23,6 @@ import {
   FastForward,
   FolderKanban,
   Gauge,
-  GraduationCap,
   LayoutGrid,
   Pause,
   Play,
@@ -49,10 +49,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import CustomEdge from "./custom-edge"
-import LessonPanel from "./lesson-panel"
+import CanvasBlockPicker from "./canvas-block-picker"
 import NodeConfigPanel from "./node-config-panel"
 import NodeLibrary from "./node-library"
 import ProjectHub from "./project-hub"
@@ -68,6 +67,7 @@ import {
   InputNode,
   ListNode,
   LoopNode,
+  OperationNode,
   PrintNode,
   StartNode,
   SwitchNode,
@@ -99,6 +99,7 @@ const nodeTypes = {
   start: StartNode,
   end: EndNode,
   variable: VariableNode,
+  operation: OperationNode,
   input: InputNode,
   print: PrintNode,
   condition: ConditionNode,
@@ -119,6 +120,18 @@ const HANDLE_LABELS: Record<string, string> = {
   done: "depois",
 }
 
+type HandleConnectFrom = {
+  nodeId: string
+  handleType: "source" | "target"
+  handleId?: string | null
+}
+
+type BlockPickerState = {
+  x: number
+  y: number
+  connectFrom?: HandleConnectFrom
+}
+
 function LogicFlowStudio() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const runtimeRef = useRef(new LogicRuntime())
@@ -129,7 +142,9 @@ function LogicFlowStudio() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(DEFAULT_GRAPH.edges)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null)
-  const [rightTab, setRightTab] = useState("licao")
+  const [blockPicker, setBlockPicker] = useState<BlockPickerState | null>(null)
+  const connectStartRef = useRef<OnConnectStartParams | null>(null)
+  const connectSucceededRef = useRef(false)
   const [confirmAction, setConfirmAction] = useState<"reset" | "clear" | null>(null)
   const [studioOpen, setStudioOpen] = useState(false)
   const [hubArriving, setHubArriving] = useState(false)
@@ -140,15 +155,53 @@ function LogicFlowStudio() {
   const { resolvedTheme } = useTheme()
   const isDarkCanvas = resolvedTheme !== "light"
   const showMiniMap = useMediaQuery("(min-width: 768px)")
-  const [paletteOpen, setPaletteOpen] = useState(true)
-  const [missionOpen, setMissionOpen] = useState(true)
-  const [mobilePanel, setMobilePanel] = useState<"blocos" | "missao" | null>(null)
+  const paletteOpen = persisted.paletteOpen ?? true
+  const missionOpen = persisted.missionOpen ?? true
+  const mobilePanel = persisted.mobilePanel ?? null
   const celebratedLessons = useRef(new Set<string>())
 
+  const setPaletteOpen = useCallback(
+    (value: boolean | ((prev: boolean) => boolean)) => {
+      setPersisted((current) => {
+        const prev = current.paletteOpen ?? true
+        const nextValue = typeof value === "function" ? value(prev) : value
+        const next = { ...current, paletteOpen: nextValue }
+        saveState(next)
+        return next
+      })
+    },
+    [],
+  )
+
+  const setMissionOpen = useCallback(
+    (value: boolean | ((prev: boolean) => boolean)) => {
+      setPersisted((current) => {
+        const prev = current.missionOpen ?? true
+        const nextValue = typeof value === "function" ? value(prev) : value
+        const next = { ...current, missionOpen: nextValue }
+        saveState(next)
+        return next
+      })
+    },
+    [],
+  )
+
+  const setMobilePanel = useCallback(
+    (value: "blocos" | "missao" | null | ((prev: "blocos" | "missao" | null) => "blocos" | "missao" | null)) => {
+      setPersisted((current) => {
+        const prev = current.mobilePanel ?? null
+        const nextValue = typeof value === "function" ? value(prev) : value
+        const next = { ...current, mobilePanel: nextValue }
+        saveState(next)
+        return next
+      })
+    },
+    [],
+  )
+
   const paletteDocked = canDockPalette && paletteOpen
-  const missionDocked = canDockMission && missionOpen
+  const missionDocked = canDockMission && missionOpen && Boolean(selectedNodeId)
   const paletteVisible = canDockPalette ? paletteOpen : mobilePanel === "blocos"
-  const missionVisible = canDockMission ? missionOpen : mobilePanel === "missao"
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) as WorkflowNode | undefined
   const program = currentProgram(persisted)
@@ -248,6 +301,7 @@ function LogicFlowStudio() {
 
   const onConnect = useCallback(
     (params: Edge | Connection) => {
+      connectSucceededRef.current = true
       const sourceHandle = "sourceHandle" in params ? params.sourceHandle : undefined
       const label = resolveHandleLabel(params.source, sourceHandle)
       setEdges((current) =>
@@ -265,10 +319,64 @@ function LogicFlowStudio() {
     [resolveHandleLabel, setEdges],
   )
 
+  const onConnectStart = useCallback((_: unknown, params: OnConnectStartParams) => {
+    connectSucceededRef.current = false
+    connectStartRef.current = params
+  }, [])
+
+  const onConnectEnd = useCallback((event: any) => {
+    const start = connectStartRef.current
+    const succeeded = connectSucceededRef.current
+    connectStartRef.current = null
+    connectSucceededRef.current = false
+    if (succeeded || !start?.nodeId || !start.handleType) return
+
+    const point = event?.changedTouches?.[0] ?? event
+    if (!point || typeof point.clientX !== "number") return
+
+    setBlockPicker({
+      x: point.clientX,
+      y: point.clientY,
+      connectFrom: {
+        nodeId: start.nodeId,
+        handleType: start.handleType,
+        handleId: start.handleId,
+      },
+    })
+  }, [])
+
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
   }, [])
+
+  const addNodeAtFlowPosition = useCallback(
+    (type: string, position: { x: number; y: number }): WorkflowNode | null => {
+      if (type === "start" && nodes.some((node) => node.type === "start")) {
+        toast({
+          title: "Já existe um Início",
+          description: "Um programa só pode ter um ponto de partida.",
+          variant: "destructive",
+        })
+        return null
+      }
+
+      const catalog = getCatalogItem(type)
+      const newNode = createNode({
+        type,
+        position,
+        id: generateNodeId(type),
+        data: catalog ? { label: catalog.label, description: catalog.description, tip: catalog.tip } : undefined,
+      })
+      setNodes((current) => current.concat(newNode))
+      setSelectedNodeId(newNode.id)
+      if (canDockMission) setMissionOpen(true)
+      else setMobilePanel("missao")
+      return newNode
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canDockMission, nodes, setNodes],
+  )
 
   const onDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -280,28 +388,62 @@ function LogicFlowStudio() {
         x: event.clientX,
         y: event.clientY,
       })
+      addNodeAtFlowPosition(type, position)
+    },
+    [addNodeAtFlowPosition, reactFlowInstance],
+  )
 
-      const catalog = getCatalogItem(type)
-      if (type === "start" && nodes.some((node) => node.type === "start")) {
-        toast({
-          title: "Já existe um Início",
-          description: "Um programa só pode ter um ponto de partida.",
-          variant: "destructive",
+  const onPaneContextMenu = useCallback((event: MouseEvent) => {
+    event.preventDefault()
+    setBlockPicker({ x: event.clientX, y: event.clientY })
+  }, [])
+
+  const pickBlockFromCanvas = useCallback(
+    (type: string) => {
+      if (!reactFlowInstance || !blockPicker) return
+
+      const connectFrom = blockPicker.connectFrom
+      const origin = connectFrom
+        ? (nodes.find((node) => node.id === connectFrom.nodeId) as WorkflowNode | undefined)
+        : undefined
+
+      let position = reactFlowInstance.screenToFlowPosition({
+        x: blockPicker.x,
+        y: blockPicker.y,
+      })
+
+      if (origin && connectFrom) {
+        const offsetX = connectFrom.handleType === "source" ? 280 : -280
+        position = {
+          x: origin.position.x + offsetX,
+          y: origin.position.y,
+        }
+      }
+
+      setBlockPicker(null)
+      const newNode = addNodeAtFlowPosition(type, position)
+      if (!newNode || !connectFrom) return
+
+      if (connectFrom.handleType === "source") {
+        if (newNode.type === "start") return
+        onConnect({
+          source: connectFrom.nodeId,
+          sourceHandle: connectFrom.handleId ?? null,
+          target: newNode.id,
+          targetHandle: null,
         })
         return
       }
 
-      const newNode = createNode({
-        type,
-        position,
-        id: generateNodeId(type),
-        data: catalog ? { label: catalog.label, description: catalog.description, tip: catalog.tip } : undefined,
+      if (newNode.type === "end") return
+      onConnect({
+        source: newNode.id,
+        sourceHandle: null,
+        target: connectFrom.nodeId,
+        targetHandle: connectFrom.handleId ?? null,
       })
-      setNodes((current) => current.concat(newNode))
-      setSelectedNodeId(newNode.id)
-      setRightTab("bloco")
     },
-    [nodes, reactFlowInstance, setNodes, firstName],
+    [addNodeAtFlowPosition, blockPicker, nodes, onConnect, reactFlowInstance],
   )
 
   const updateNodeData = useCallback(
@@ -483,20 +625,6 @@ function LogicFlowStudio() {
     setStudioOpen(false)
   }
 
-  const selectLesson = (lessonId: string) => {
-    setPersisted((current) => {
-      const next = {
-        ...current,
-        programs: current.programs.map((item) =>
-          item.id === current.currentProgramId ? { ...item, lessonId } : item,
-        ),
-      }
-      saveState(next)
-      return next
-    })
-    setRightTab("licao")
-  }
-
   const busy = snapshot.status === "running" || snapshot.status === "waiting-input" || snapshot.status === "paused"
 
   const listVariables = useMemo(() => collectListVariables(nodes as WorkflowNode[]), [nodes])
@@ -507,14 +635,7 @@ function LogicFlowStudio() {
     else setMobilePanel((panel) => (panel === "blocos" ? null : "blocos"))
   }
 
-  const toggleMission = () => {
-    setRightTab("licao")
-    if (canDockMission) setMissionOpen((value) => !value)
-    else setMobilePanel((panel) => (panel === "missao" ? null : "missao"))
-  }
-
   const openBlockConfig = () => {
-    setRightTab("bloco")
     if (canDockMission) setMissionOpen(true)
     else setMobilePanel("missao")
   }
@@ -524,75 +645,34 @@ function LogicFlowStudio() {
     (type: string) => {
       if (!reactFlowInstance) return
 
-      if (type === "start" && nodes.some((node) => node.type === "start")) {
-        toast({
-          title: "Já existe um Início",
-          description: "Um programa só pode ter um ponto de partida.",
-          variant: "destructive",
-        })
-        return
-      }
-
       const bounds = reactFlowWrapper.current?.getBoundingClientRect()
       const position = reactFlowInstance.screenToFlowPosition({
         x: bounds ? bounds.x + bounds.width / 2 : window.innerWidth / 2,
         y: bounds ? bounds.y + bounds.height / 2 : window.innerHeight / 2,
       })
 
-      const catalog = getCatalogItem(type)
-      const newNode = createNode({
-        type,
-        position,
-        id: generateNodeId(type),
-        data: catalog ? { label: catalog.label, description: catalog.description, tip: catalog.tip } : undefined,
-      })
-
-      setNodes((current) => current.concat(newNode))
-      setSelectedNodeId(newNode.id)
       setMobilePanel(null)
-      openBlockConfig()
+      addNodeAtFlowPosition(type, position)
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canDockMission, nodes, reactFlowInstance, setNodes, firstName],
+    [addNodeAtFlowPosition, reactFlowInstance],
   )
 
-  const sidePanel = (
-    <Tabs value={rightTab} onValueChange={setRightTab} className="flex h-full flex-col">
-      <div className="border-b border-border px-4 pt-4">
-        <TabsList className="grid h-11 w-full grid-cols-2">
-          <TabsTrigger value="licao">Aula</TabsTrigger>
-          <TabsTrigger value="bloco" disabled={!selectedNode}>
-            Bloco
-          </TabsTrigger>
-        </TabsList>
-      </div>
-      <TabsContent value="licao" className="mt-0 min-h-0 flex-1">
-        <LessonPanel
-          lessonId={program?.lessonId}
-          completedLessons={persisted.completedLessons}
-          nodes={nodes as WorkflowNode[]}
-          snapshot={snapshot}
-          onSelectLesson={selectLesson}
-          onLoadExample={loadExample}
-        />
-      </TabsContent>
-      <TabsContent value="bloco" className="mt-0 min-h-0 flex-1">
-        {selectedNode ? (
-          <NodeConfigPanel
-            key={selectedNode.id}
-            node={selectedNode}
-            listVariables={listVariables}
-            programVariables={programVariables}
-            updateNodeData={updateNodeData}
-            onClose={() => (canDockMission ? setSelectedNodeId(null) : setMobilePanel(null))}
-          />
-        ) : (
-          <p className="p-4 text-sm text-muted-foreground">
-            Clique em um bloco do canvas para configurar.
-          </p>
-        )}
-      </TabsContent>
-    </Tabs>
+  const closeBlockPanel = () => {
+    setSelectedNodeId(null)
+    if (!canDockMission) setMobilePanel(null)
+  }
+
+  const sidePanel = selectedNode ? (
+    <NodeConfigPanel
+      key={selectedNode.id}
+      node={selectedNode}
+      listVariables={listVariables}
+      programVariables={programVariables}
+      updateNodeData={updateNodeData}
+      onClose={closeBlockPanel}
+    />
+  ) : (
+    <p className="p-4 text-sm text-muted-foreground">Clique em um bloco do canvas para configurar.</p>
   )
 
   // O canvas muda de largura quando os painéis abrem ou fecham.
@@ -726,28 +806,16 @@ function LogicFlowStudio() {
         </div>
 
         <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto sm:justify-end">
-          <div className="flex items-center gap-1 rounded-full border border-border bg-muted/40 p-1">
-            <Button
-              size="sm"
-              variant={paletteVisible ? "secondary" : "ghost"}
-              onClick={togglePalette}
-              title="Blocos de lógica"
-              className="h-9 rounded-full px-3"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span className="hidden md:inline">Blocos</span>
-            </Button>
-            <Button
-              size="sm"
-              variant={missionVisible ? "secondary" : "ghost"}
-              onClick={toggleMission}
-              title="Aulas e configuração"
-              className="h-9 rounded-full px-3"
-            >
-              <GraduationCap className="h-4 w-4" />
-              <span className="hidden md:inline">Aula</span>
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            variant={paletteVisible ? "secondary" : "ghost"}
+            onClick={togglePalette}
+            title="Blocos de lógica"
+            className="h-9 rounded-full border border-border px-3"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden md:inline">Blocos</span>
+          </Button>
 
           <div className="flex flex-1 items-center gap-1 rounded-full border border-border bg-muted/40 p-1 sm:flex-none">
             {persisted.stepMode && (
@@ -834,17 +902,23 @@ function LogicFlowStudio() {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onConnectStart={onConnectStart}
+              onConnectEnd={onConnectEnd}
               onInit={(instance) => {
                 setReactFlowInstance(instance)
                 window.setTimeout(() => instance.fitView({ padding: 0.25 }), 80)
               }}
               onDrop={onDrop}
               onDragOver={onDragOver}
+              onPaneContextMenu={onPaneContextMenu}
               onNodeClick={(_, node) => {
                 setSelectedNodeId(node.id)
                 openBlockConfig()
               }}
-              onPaneClick={() => setSelectedNodeId(null)}
+              onPaneClick={() => {
+                setSelectedNodeId(null)
+                setBlockPicker(null)
+              }}
               isValidConnection={(connection) => {
                 const source = nodes.find((node) => node.id === connection.source)
                 const target = nodes.find((node) => node.id === connection.target)
@@ -877,6 +951,7 @@ function LogicFlowStudio() {
                     start: "#10b981",
                     end: "#64748b",
                     variable: "#8b5cf6",
+                    operation: "#f43f5e",
                     input: "#0ea5e9",
                     print: "#14b8a6",
                     condition: "#f59e0b",
@@ -889,6 +964,21 @@ function LogicFlowStudio() {
                 }}
               />
             </ReactFlow>
+
+            <CanvasBlockPicker
+              open={Boolean(blockPicker)}
+              x={blockPicker?.x ?? 0}
+              y={blockPicker?.y ?? 0}
+              excludeTypes={
+                blockPicker?.connectFrom?.handleType === "source"
+                  ? ["start"]
+                  : blockPicker?.connectFrom?.handleType === "target"
+                    ? ["end"]
+                    : undefined
+              }
+              onClose={() => setBlockPicker(null)}
+              onPick={pickBlockFromCanvas}
+            />
 
             <div className="pointer-events-none absolute left-2 top-2 flex flex-wrap gap-1.5 sm:left-4 sm:top-4 sm:gap-2">
               <Button
@@ -957,7 +1047,7 @@ function LogicFlowStudio() {
         onOpenChange={(open) => setMobilePanel(open ? "missao" : null)}
       >
         <SheetContent side="right" className="w-[92vw] max-w-sm p-0 pt-10" aria-describedby={undefined}>
-          <SheetTitle className="sr-only">Missões e configuração do bloco</SheetTitle>
+          <SheetTitle className="sr-only">Configuração do bloco</SheetTitle>
           {sidePanel}
         </SheetContent>
       </Sheet>

@@ -821,6 +821,20 @@
   border-radius: 0 !important;
 }
 
+.logic-node-shell {
+  position: relative;
+}
+
+.logic-node-shell > .react-flow__handle-left {
+  left: -6px !important;
+  right: auto !important;
+}
+
+.logic-node-shell > .react-flow__handle-right {
+  right: -6px !important;
+  left: auto !important;
+}
+
 .react-flow__node.selected .logic-node-shell {
   box-shadow: 0 0 0 2px hsl(var(--primary) / 0.55);
 }

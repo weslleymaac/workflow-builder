@@ -2,7 +2,15 @@ import { Position, type XYPosition } from "reactflow"
 import { findFunction } from "./functions"
 import { getCatalogItem } from "./node-catalog"
 import type { TypedVariable } from "./condition"
-import type { DataType, LogicNodeType, NodeData, WorkflowEdge, WorkflowNode } from "./types"
+import type {
+  DataType,
+  LogicNodeType,
+  NodeData,
+  VariableAssignment,
+  VariableDeclaration,
+  WorkflowEdge,
+  WorkflowNode,
+} from "./types"
 
 const LAYOUT_X_GAP = 280
 const LAYOUT_Y_GAP = 150
@@ -12,14 +20,15 @@ const LAYOUT_ORIGIN_Y = 180
 const FLOW_TYPE_ORDER: Record<string, number> = {
   start: 0,
   variable: 1,
-  input: 2,
-  function: 3,
-  list: 4,
-  condition: 5,
-  switch: 5,
-  loop: 6,
-  print: 7,
-  end: 8,
+  operation: 2,
+  input: 3,
+  function: 4,
+  list: 5,
+  condition: 6,
+  switch: 6,
+  loop: 7,
+  print: 8,
+  end: 9,
 }
 
 function branchYOffset(handle?: string | null): number {
@@ -220,8 +229,31 @@ const defaultData = (type: LogicNodeType): NodeData => {
   }
 
   switch (type) {
-    case "variable":
-      return { ...base, variableName: "pontos", dataType: "numero", valueExpr: "0" }
+    case "variable": {
+      const first = createVariableDeclaration({
+        name: "pontos",
+        dataType: "numero",
+        valueExpr: "0",
+      })
+      return {
+        ...base,
+        variables: [first],
+        variableName: first.name,
+        dataType: first.dataType,
+        valueExpr: first.valueExpr,
+      }
+    }
+    case "operation":
+      return {
+        ...base,
+        assignments: [
+          createVariableAssignment({
+            targetVar: "pontos",
+            mode: "expression",
+            valueExpr: "pontos + 1",
+          }),
+        ],
+      }
     case "input":
       return {
         ...base,
@@ -304,7 +336,13 @@ export const collectProgramVariables = (nodes: WorkflowNode[]): TypedVariable[] 
   for (const node of nodes) {
     const { data } = node
 
-    if ((node.type === "variable" || node.type === "input") && data.variableName?.trim()) {
+    if (node.type === "variable") {
+      for (const item of getVariableDeclarations(data)) {
+        setVar(item.name, item.dataType)
+      }
+    }
+
+    if (node.type === "input" && data.variableName?.trim()) {
       setVar(data.variableName, data.dataType ?? "texto")
     }
 
@@ -342,6 +380,85 @@ export const collectProgramVariables = (nodes: WorkflowNode[]): TypedVariable[] 
   return [...map.entries()]
     .map(([name, dataType]) => ({ name, dataType }))
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+}
+
+export function createVariableDeclaration(
+  partial?: Partial<Omit<VariableDeclaration, "id">> & { id?: string },
+): VariableDeclaration {
+  return {
+    id: partial?.id ?? `var-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    name: partial?.name ?? "",
+    dataType: partial?.dataType ?? "texto",
+    valueExpr: partial?.valueExpr ?? "",
+  }
+}
+
+/** Normaliza bloco Variável legado (1 campo) para lista de declarações. */
+export function getVariableDeclarations(data: NodeData): VariableDeclaration[] {
+  if (data.variables && data.variables.length > 0) return data.variables
+  return [
+    createVariableDeclaration({
+      id: "legacy",
+      name: data.variableName ?? "",
+      dataType: data.dataType ?? "texto",
+      valueExpr: data.valueExpr ?? "",
+    }),
+  ]
+}
+
+/** Mantém campos legados sincronizados com a primeira declaração. */
+export function syncVariableDeclarations(variables: VariableDeclaration[]) {
+  const first = variables[0]
+  return {
+    variables,
+    variableName: first?.name ?? "",
+    dataType: first?.dataType ?? "texto",
+    valueExpr: first?.valueExpr ?? "",
+  }
+}
+
+export function createVariableAssignment(
+  partial?: Partial<Omit<VariableAssignment, "id">> & { id?: string },
+): VariableAssignment {
+  return {
+    id: partial?.id ?? `op-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    targetVar: partial?.targetVar ?? "",
+    mode: partial?.mode ?? "function",
+    valueExpr: partial?.valueExpr ?? "",
+    functionName: partial?.functionName,
+    functionArgs: partial?.functionArgs ?? [],
+  }
+}
+
+export function getVariableAssignments(data: NodeData): VariableAssignment[] {
+  if (data.assignments && data.assignments.length > 0) {
+    return data.assignments.map((item) => ({
+      ...createVariableAssignment(item),
+      id: item.id,
+      mode: item.mode ?? (item.functionName ? "function" : "expression"),
+    }))
+  }
+  if (data.variableName || data.valueExpr) {
+    return [
+      createVariableAssignment({
+        id: "legacy",
+        targetVar: data.variableName ?? "",
+        mode: "expression",
+        valueExpr: data.valueExpr ?? "",
+      }),
+    ]
+  }
+  return [createVariableAssignment()]
+}
+
+/** Conta quantas variáveis nomeadas existem nos blocos Variável do fluxo. */
+export function countDeclaredVariables(nodes: WorkflowNode[]): number {
+  return nodes
+    .filter((node) => node.type === "variable")
+    .reduce(
+      (total, node) => total + getVariableDeclarations(node.data).filter((item) => item.name.trim()).length,
+      0,
+    )
 }
 
 /**

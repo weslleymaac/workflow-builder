@@ -94,6 +94,9 @@ export function emptyPersistedState(defaultGraph: WorkflowGraph): PersistedState
     speedMs: DEFAULT_SPEED_MS,
     stepMode: false,
     showCanvasDots: true,
+    paletteOpen: true,
+    missionOpen: true,
+    mobilePanel: null,
     firstName: undefined,
   }
 }
@@ -110,6 +113,9 @@ export function loadState(): PersistedState | null {
       return {
         ...parsed,
         showCanvasDots: parsed.showCanvasDots ?? true,
+        paletteOpen: parsed.paletteOpen ?? true,
+        missionOpen: parsed.missionOpen ?? true,
+        mobilePanel: parsed.mobilePanel ?? null,
         firstName: parsed.firstName?.trim() || undefined,
         programs: parsed.programs.map((program) => ({
           ...withProgramTimestamps(program),
@@ -126,6 +132,9 @@ export function loadState(): PersistedState | null {
         ...parsed,
         version: STORAGE_VERSION,
         showCanvasDots: parsed.showCanvasDots ?? true,
+        paletteOpen: parsed.paletteOpen ?? true,
+        missionOpen: parsed.missionOpen ?? true,
+        mobilePanel: parsed.mobilePanel ?? null,
         firstName: parsed.firstName?.trim() || undefined,
         programs: parsed.programs.map((program) => ({
           ...withProgramTimestamps(program),

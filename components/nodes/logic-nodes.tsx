@@ -3,6 +3,7 @@
 import { memo } from "react"
 import type { NodeProps } from "reactflow"
 import {
+  Cog,
   Flag,
   FunctionSquare,
   GitBranch,
@@ -18,6 +19,7 @@ import { FUNCTION_CATEGORY_LABEL, categoryOf, findFunction } from "@/lib/functio
 import { formatConditionsDisplay, getConditionRules } from "@/lib/condition"
 import type { NodeData } from "@/lib/types"
 import { DATA_TYPE_LABEL } from "@/lib/values"
+import { getVariableAssignments, getVariableDeclarations } from "@/lib/workflow-utils"
 import { LogicNode } from "./logic-node"
 
 export const StartNode = memo(({ data, selected }: NodeProps<NodeData>) => (
@@ -46,19 +48,91 @@ export const EndNode = memo(({ data, selected }: NodeProps<NodeData>) => (
 ))
 EndNode.displayName = "EndNode"
 
-export const VariableNode = memo(({ data, selected }: NodeProps<NodeData>) => (
-  <LogicNode
-    accent="violet"
-    icon={<Variable className="h-4 w-4" />}
-    title={data.label || "Variável"}
-    subtitle={data.dataType ? DATA_TYPE_LABEL[data.dataType] : "Guardar valor"}
-    selected={selected}
-    running={data.running}
-  >
-    {data.variableName || "nome"} = {data.valueExpr || "?"}
-  </LogicNode>
-))
+export const VariableNode = memo(({ data, selected }: NodeProps<NodeData>) => {
+  const declarations = getVariableDeclarations(data).filter((item) => item.name.trim() || item.valueExpr.trim())
+  const visible = declarations.slice(0, 3)
+  const extra = Math.max(declarations.length - visible.length, 0)
+
+  return (
+    <LogicNode
+      accent="violet"
+      icon={<Variable className="h-4 w-4" />}
+      title={data.label || "Variável"}
+      subtitle={
+        declarations.length > 1
+          ? `${declarations.length} variáveis`
+          : declarations[0]?.dataType
+            ? DATA_TYPE_LABEL[declarations[0].dataType]
+            : "Guardar valor"
+      }
+      selected={selected}
+      running={data.running}
+    >
+      {visible.length === 0 ? (
+        <span>nome = ?</span>
+      ) : (
+        <div className="space-y-0.5">
+          {visible.map((item) => (
+            <div key={item.id}>
+              {item.name || "nome"} = {item.valueExpr || "?"}
+            </div>
+          ))}
+          {extra > 0 && <div className="text-muted-foreground">+{extra} mais</div>}
+        </div>
+      )}
+    </LogicNode>
+  )
+})
 VariableNode.displayName = "VariableNode"
+
+export const OperationNode = memo(({ data, selected }: NodeProps<NodeData>) => {
+  const assignments = getVariableAssignments(data).filter(
+    (item) =>
+      item.targetVar.trim() ||
+      item.valueExpr.trim() ||
+      Boolean(item.functionName),
+  )
+  const visible = assignments.slice(0, 3)
+  const extra = Math.max(assignments.length - visible.length, 0)
+
+  return (
+    <LogicNode
+      accent="rose"
+      icon={<Cog className="h-4 w-4" />}
+      title={data.label || "Processar"}
+      subtitle={
+        assignments.length > 1 ? `${assignments.length} processamentos` : "Altera variável"
+      }
+      selected={selected}
+      running={data.running}
+    >
+      {visible.length === 0 ? (
+        <span>variável ← ?</span>
+      ) : (
+        <div className="space-y-1">
+          {visible.map((item) => {
+            const mode = item.mode ?? (item.functionName ? "function" : "expression")
+            if (mode === "function") {
+              const args = (item.functionArgs ?? []).filter(Boolean).join(", ")
+              return (
+                <div key={item.id} className="font-mono text-xs leading-snug">
+                  {item.targetVar || "variável"}.{item.functionName || "?"}({args})
+                </div>
+              )
+            }
+            return (
+              <div key={item.id} className="font-mono text-xs leading-snug">
+                {item.targetVar || "variável"} = {item.valueExpr || "?"}
+              </div>
+            )
+          })}
+          {extra > 0 && <div className="text-muted-foreground">+{extra} mais</div>}
+        </div>
+      )}
+    </LogicNode>
+  )
+})
+OperationNode.displayName = "OperationNode"
 
 export const InputNode = memo(({ data, selected }: NodeProps<NodeData>) => (
   <LogicNode

@@ -7,6 +7,7 @@ export type LogicNodeType =
   | "end"
   | "input"
   | "variable"
+  | "operation"
   | "condition"
   | "switch"
   | "loop"
@@ -21,6 +22,28 @@ export interface ConditionRule {
   leftExpr: string
   operator: CompareOperator
   rightExpr?: string
+}
+
+export interface VariableDeclaration {
+  id: string
+  name: string
+  dataType: DataType
+  valueExpr: string
+}
+
+/** Atribuição que altera uma variável já existente (bloco Processar). */
+export type AssignmentMode = "function" | "expression"
+
+export interface VariableAssignment {
+  id: string
+  targetVar: string
+  mode: AssignmentMode
+  /** Modo expressão: novo valor livre */
+  valueExpr: string
+  /** Modo função: nome da função tipada */
+  functionName?: string
+  /** Modo função: argumentos extras (o 1º é sempre a variável escolhida) */
+  functionArgs?: string[]
 }
 
 export interface SwitchCase {
@@ -66,6 +89,10 @@ export interface NodeData {
   variableName?: string
   dataType?: DataType
   valueExpr?: string
+  /** Várias declarações no mesmo bloco Variável */
+  variables?: VariableDeclaration[]
+  /** Atribuições do bloco Processar (atualiza variáveis existentes) */
+  assignments?: VariableAssignment[]
   prompt?: string
 
   leftExpr?: string
@@ -126,6 +153,12 @@ export interface PersistedState {
   stepMode: boolean
   /** Exibe o padrão de bolinhas no canvas do React Flow */
   showCanvasDots: boolean
+  /** Painel lateral de blocos aberto (desktop) */
+  paletteOpen?: boolean
+  /** Painel de aula/configuração aberto (desktop) */
+  missionOpen?: boolean
+  /** Painel em tela estreita: blocos, aula ou nenhum */
+  mobilePanel?: "blocos" | "missao" | null
   /** Primeiro nome da pessoa, usado nas aulas e na interface */
   firstName?: string
 }

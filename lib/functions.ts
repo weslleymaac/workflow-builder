@@ -65,6 +65,38 @@ const TEXT_FUNCTIONS: LogicFunction[] = [
     run: ([value]) => ({ type: "texto", value: asString(value).toLowerCase() }),
   },
   {
+    name: "capitalizar",
+    categories: ["texto"],
+    label: "Capitalizar palavras",
+    description: "Deixa a primeira letra de cada palavra em maiúscula.",
+    example: 'capitalizar("bom dia") → "Bom Dia"',
+    params: [{ label: "Texto", placeholder: '"bom dia"' }],
+    run: ([value]) => ({
+      type: "texto",
+      value: asString(value)
+        .toLowerCase()
+        .replace(/(^|\s)([A-Za-zÀ-ÿ])/g, (_, space: string, letter: string) => space + letter.toUpperCase()),
+    }),
+  },
+  {
+    name: "aparar",
+    categories: ["texto"],
+    label: "Tirar espaços das pontas",
+    description: "Remove espaços no começo e no fim do texto.",
+    example: 'aparar("  ana  ") → "ana"',
+    params: [{ label: "Texto", placeholder: '"  ana  "' }],
+    run: ([value]) => ({ type: "texto", value: asString(value).trim() }),
+  },
+  {
+    name: "removerEspacos",
+    categories: ["texto"],
+    label: "Remover todos os espaços",
+    description: "Tira todos os espaços do texto.",
+    example: 'removerEspacos("a b c") → "abc"',
+    params: [{ label: "Texto", placeholder: '"a b c"' }],
+    run: ([value]) => ({ type: "texto", value: asString(value).replace(/\s+/g, "") }),
+  },
+  {
     name: "juntar",
     categories: ["texto"],
     label: "Juntar dois textos",
@@ -75,6 +107,42 @@ const TEXT_FUNCTIONS: LogicFunction[] = [
       { label: "Segundo texto", placeholder: '"dia"' },
     ],
     run: ([left, right]) => ({ type: "texto", value: asString(left) + asString(right) }),
+  },
+  {
+    name: "repetir",
+    categories: ["texto"],
+    label: "Repetir texto",
+    description: "Repete o texto várias vezes.",
+    example: 'repetir("ha", 3) → "hahaha"',
+    params: [
+      { label: "Texto", placeholder: '"ha"' },
+      { label: "Vezes", placeholder: "3" },
+    ],
+    run: ([text, times]) => {
+      const n = Math.trunc(asNumber(times, "repetir()"))
+      if (n < 0) throw new Error("repetir() precisa de um número de vezes ≥ 0.")
+      if (n > 10_000) throw new Error("repetir() aceita no máximo 10000 vezes.")
+      return { type: "texto", value: asString(text).repeat(n) }
+    },
+  },
+  {
+    name: "pedaco",
+    categories: ["texto"],
+    label: "Pegar um pedaço",
+    description: "Corta o texto do índice inicial até o tamanho pedido.",
+    example: 'pedaco("abcdef", 1, 3) → "bcd"',
+    params: [
+      { label: "Texto", placeholder: '"abcdef"' },
+      { label: "Começa em", placeholder: "0" },
+      { label: "Quantas letras", placeholder: "3" },
+    ],
+    run: ([text, start, length]) => {
+      const raw = asString(text)
+      const from = Math.trunc(asNumber(start, "pedaco()"))
+      const size = Math.trunc(asNumber(length, "pedaco()"))
+      if (size < 0) throw new Error("pedaco() precisa de tamanho ≥ 0.")
+      return { type: "texto", value: raw.slice(from, from + size) }
+    },
   },
   {
     name: "substituir",
@@ -93,11 +161,35 @@ const TEXT_FUNCTIONS: LogicFunction[] = [
     }),
   },
   {
-    name: "texto",
+    name: "posicao",
     categories: ["texto"],
-    label: "Transformar em texto",
+    label: "Onde começa o trecho",
+    description: "Devolve o índice onde o trecho aparece, ou -1 se não achar.",
+    example: 'posicao("banana", "nan") → 2',
+    params: [
+      { label: "Texto", placeholder: '"banana"' },
+      { label: "Procurar", placeholder: '"nan"' },
+    ],
+    run: ([text, needle]) => ({
+      type: "numero",
+      value: asString(text).indexOf(asString(needle)),
+    }),
+  },
+  {
+    name: "eVazio",
+    categories: ["texto"],
+    label: "Texto está vazio?",
+    description: "Verdadeiro se o texto não tem nenhum caractere (após aparar espaços).",
+    example: 'eVazio("   ") → verdadeiro',
+    params: [{ label: "Texto", placeholder: '""' }],
+    run: ([value]) => ({ type: "logico", value: asString(value).trim().length === 0 }),
+  },
+  {
+    name: "ParaTexto",
+    categories: ["texto"],
+    label: "Para texto",
     description: "Converte qualquer valor para o tipo texto.",
-    example: 'texto(18) → "18"',
+    example: 'ParaTexto(18) → "18"',
     params: [{ label: "Valor", placeholder: "18" }],
     run: ([value]) => ({ type: "texto", value: asString(value) }),
   },
@@ -132,6 +224,15 @@ const MATH_FUNCTIONS: LogicFunction[] = [
     run: ([value]) => ({ type: "numero", value: Math.ceil(asNumber(value, "arredondarCima()")) }),
   },
   {
+    name: "truncar",
+    categories: ["matematica"],
+    label: "Truncar (parte inteira)",
+    description: "Remove a parte decimal sem arredondar.",
+    example: "truncar(3.9) → 3",
+    params: [{ label: "Número", placeholder: "3.9" }],
+    run: ([value]) => ({ type: "numero", value: Math.trunc(asNumber(value, "truncar()")) }),
+  },
+  {
     name: "absoluto",
     categories: ["matematica"],
     label: "Valor absoluto",
@@ -139,6 +240,27 @@ const MATH_FUNCTIONS: LogicFunction[] = [
     example: "absoluto(-7) → 7",
     params: [{ label: "Número", placeholder: "-7" }],
     run: ([value]) => ({ type: "numero", value: Math.abs(asNumber(value, "absoluto()")) }),
+  },
+  {
+    name: "sinal",
+    categories: ["matematica"],
+    label: "Sinal do número",
+    description: "Devolve -1, 0 ou 1 conforme o número seja negativo, zero ou positivo.",
+    example: "sinal(-5) → -1",
+    params: [{ label: "Número", placeholder: "-5" }],
+    run: ([value]) => ({ type: "numero", value: Math.sign(asNumber(value, "sinal()")) }),
+  },
+  {
+    name: "quadrado",
+    categories: ["matematica"],
+    label: "Elevar ao quadrado",
+    description: "Multiplica o número por ele mesmo.",
+    example: "quadrado(4) → 16",
+    params: [{ label: "Número", placeholder: "4" }],
+    run: ([value]) => {
+      const n = asNumber(value, "quadrado()")
+      return { type: "numero", value: n * n }
+    },
   },
   {
     name: "raiz",
@@ -167,6 +289,41 @@ const MATH_FUNCTIONS: LogicFunction[] = [
       type: "numero",
       value: Math.pow(asNumber(base, "potencia()"), asNumber(exponent, "potencia()")),
     }),
+  },
+  {
+    name: "resto",
+    categories: ["matematica"],
+    label: "Resto da divisão",
+    description: "O que sobra da divisão inteira (igual a mod / %).",
+    example: "resto(10, 3) → 1",
+    params: [
+      { label: "Dividendo", placeholder: "10" },
+      { label: "Divisor", placeholder: "3" },
+    ],
+    run: ([a, b]) => {
+      const divisor = asNumber(b, "resto()")
+      if (divisor === 0) throw new Error("resto() não pode dividir por zero.")
+      return { type: "numero", value: asNumber(a, "resto()") % divisor }
+    },
+  },
+  {
+    name: "limitar",
+    categories: ["matematica"],
+    label: "Limitar entre mínimo e máximo",
+    description: "Segura o valor para não sair do intervalo.",
+    example: "limitar(15, 0, 10) → 10",
+    params: [
+      { label: "Valor", placeholder: "15" },
+      { label: "Mínimo", placeholder: "0" },
+      { label: "Máximo", placeholder: "10" },
+    ],
+    run: ([value, min, max]) => {
+      const n = asNumber(value, "limitar()")
+      const lo = asNumber(min, "limitar()")
+      const hi = asNumber(max, "limitar()")
+      if (lo > hi) throw new Error("Em limitar(), o mínimo precisa ser ≤ máximo.")
+      return { type: "numero", value: Math.min(hi, Math.max(lo, n)) }
+    },
   },
   {
     name: "maximo",
@@ -216,13 +373,31 @@ const MATH_FUNCTIONS: LogicFunction[] = [
     },
   },
   {
-    name: "numero",
+    name: "aleatorio",
     categories: ["matematica"],
-    label: "Transformar em número",
+    label: "Número aleatório 0–1",
+    description: "Sorteia um decimal entre 0 (incluso) e 1 (excluso).",
+    example: "aleatorio() → 0.372…",
+    params: [],
+    run: () => ({ type: "numero", value: Math.random() }),
+  },
+  {
+    name: "pi",
+    categories: ["matematica"],
+    label: "Constante π",
+    description: "O número pi (aproximadamente 3,14159…).",
+    example: "pi() → 3.141592…",
+    params: [],
+    run: () => ({ type: "numero", value: Math.PI }),
+  },
+  {
+    name: "ParaNumero",
+    categories: ["matematica"],
+    label: "Para número",
     description: "Converte um texto em número para poder calcular.",
-    example: 'numero("18") → 18',
+    example: 'ParaNumero("18") → 18',
     params: [{ label: "Valor", placeholder: '"18"' }],
-    run: ([value]) => ({ type: "numero", value: asNumber(value, "numero()") }),
+    run: ([value]) => ({ type: "numero", value: asNumber(value, "ParaNumero()") }),
   },
 ]
 
@@ -311,6 +486,140 @@ const LIST_FUNCTIONS: LogicFunction[] = [
       const items = requireFilledList(value, "ultimo")
       return cloneValue(items[items.length - 1])
     },
+  },
+  {
+    name: "obter",
+    categories: ["lista"],
+    label: "Obter item pelo índice",
+    description: "Pega o item na posição informada (começa em 0).",
+    example: 'obter(["a", "b", "c"], 1) → "b"',
+    params: [
+      { label: "Lista", placeholder: "frutas" },
+      { label: "Índice", placeholder: "0" },
+    ],
+    run: ([value, indexValue]) => {
+      const items = requireList(value, "obter")
+      const index = Math.trunc(asNumber(indexValue, "obter()"))
+      if (index < 0 || index >= items.length) {
+        throw new Error(
+          `obter() índice ${index} inválido. A lista tem ${items.length} item(ns).`,
+        )
+      }
+      return cloneValue(items[index])
+    },
+  },
+  {
+    name: "indiceDe",
+    categories: ["lista"],
+    label: "Índice de um item",
+    description: "Devolve a posição do item, ou -1 se não estiver na lista.",
+    example: 'indiceDe(["a", "b"], "b") → 1',
+    params: [
+      { label: "Lista", placeholder: "frutas" },
+      { label: "Item", placeholder: '"uva"' },
+    ],
+    run: ([value, needle]) => {
+      const items = requireList(value, "indiceDe")
+      const index = items.findIndex((item) => valuesAreEqual(item, needle))
+      return { type: "numero", value: index }
+    },
+  },
+  {
+    name: "adicionar",
+    categories: ["lista"],
+    label: "Adicionar item no fim",
+    description: "Devolve uma nova lista com o item no final.",
+    example: 'adicionar([1, 2], 3) → [1, 2, 3]',
+    params: [
+      { label: "Lista", placeholder: "frutas" },
+      { label: "Item", placeholder: '"pera"' },
+    ],
+    returnsList: true,
+    run: ([value, item]) => ({
+      type: "lista",
+      value: [...requireList(value, "adicionar").map(cloneValue), cloneValue(item)],
+    }),
+  },
+  {
+    name: "remover",
+    categories: ["lista"],
+    label: "Remover primeira ocorrência",
+    description: "Devolve uma nova lista sem a primeira vez que o item aparece.",
+    example: 'remover([1, 2, 1], 1) → [2, 1]',
+    params: [
+      { label: "Lista", placeholder: "frutas" },
+      { label: "Item", placeholder: '"uva"' },
+    ],
+    returnsList: true,
+    run: ([value, needle]) => {
+      const items = requireList(value, "remover").map(cloneValue)
+      const index = items.findIndex((item) => valuesAreEqual(item, needle))
+      if (index >= 0) items.splice(index, 1)
+      return { type: "lista", value: items }
+    },
+  },
+  {
+    name: "fatia",
+    categories: ["lista"],
+    label: "Fatia da lista",
+    description: "Copia do índice inicial até o final (sem incluir o final).",
+    example: "fatia([0, 1, 2, 3], 1, 3) → [1, 2]",
+    params: [
+      { label: "Lista", placeholder: "notas" },
+      { label: "Início", placeholder: "0" },
+      { label: "Fim", placeholder: "2" },
+    ],
+    returnsList: true,
+    run: ([value, start, end]) => {
+      const items = requireList(value, "fatia")
+      const from = Math.trunc(asNumber(start, "fatia()"))
+      const to = Math.trunc(asNumber(end, "fatia()"))
+      return { type: "lista", value: items.slice(from, to).map(cloneValue) }
+    },
+  },
+  {
+    name: "semDuplicatas",
+    categories: ["lista"],
+    label: "Remover duplicatas",
+    description: "Mantém só a primeira vez que cada valor aparece.",
+    example: "semDuplicatas([1, 2, 1, 3]) → [1, 2, 3]",
+    params: [{ label: "Lista", placeholder: "frutas" }],
+    returnsList: true,
+    run: ([value]) => {
+      const result: RuntimeValue[] = []
+      for (const item of requireList(value, "semDuplicatas")) {
+        if (!result.some((existing) => valuesAreEqual(existing, item))) {
+          result.push(cloneValue(item))
+        }
+      }
+      return { type: "lista", value: result }
+    },
+  },
+  {
+    name: "embaralhar",
+    categories: ["lista"],
+    label: "Embaralhar",
+    description: "Mistura a ordem dos itens ao acaso.",
+    example: "embaralhar([1, 2, 3]) → [3, 1, 2]",
+    params: [{ label: "Lista", placeholder: "frutas" }],
+    returnsList: true,
+    run: ([value]) => {
+      const items = requireList(value, "embaralhar").map(cloneValue)
+      for (let i = items.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[items[i], items[j]] = [items[j], items[i]]
+      }
+      return { type: "lista", value: items }
+    },
+  },
+  {
+    name: "estaVazia",
+    categories: ["lista"],
+    label: "Lista está vazia?",
+    description: "Verdadeiro se a lista não tem nenhum item.",
+    example: "estaVazia([]) → verdadeiro",
+    params: [{ label: "Lista", placeholder: "frutas" }],
+    run: ([value]) => ({ type: "logico", value: requireList(value, "estaVazia").length === 0 }),
   },
   {
     name: "juntarLista",
@@ -414,10 +723,16 @@ export const LOGIC_FUNCTIONS: LogicFunction[] = [
   ...SHARED_FUNCTIONS,
 ]
 
+const FUNCTION_ALIASES: Record<string, string> = {
+  texto: "ParaTexto",
+  numero: "ParaNumero",
+}
+
 export function findFunction(name: string | undefined): LogicFunction | undefined {
   if (!name) return undefined
   const normalized = name.toLowerCase()
-  return LOGIC_FUNCTIONS.find((fn) => fn.name.toLowerCase() === normalized)
+  const canonical = (FUNCTION_ALIASES[normalized] ?? name).toLowerCase()
+  return LOGIC_FUNCTIONS.find((fn) => fn.name.toLowerCase() === canonical)
 }
 
 export function functionsByCategory(category: FunctionCategory): LogicFunction[] {
@@ -426,6 +741,45 @@ export function functionsByCategory(category: FunctionCategory): LogicFunction[]
 
 export function categoryOf(fn: LogicFunction): FunctionCategory {
   return fn.categories[0]
+}
+
+/** Pacotes globais: $Texto, $Numero, $Lista. */
+export const FUNCTION_PACKAGES = [
+  { name: "$Texto", category: "texto" as FunctionCategory, label: "Texto" },
+  { name: "$Numero", category: "matematica" as FunctionCategory, label: "Número" },
+  { name: "$Lista", category: "lista" as FunctionCategory, label: "Lista" },
+] as const
+
+export type FunctionPackage = (typeof FUNCTION_PACKAGES)[number]
+
+/** Aceita nomes novos e aliases antigos ($String/$Math/$List). */
+const PACKAGE_ALIASES: Record<string, string> = {
+  $texto: "$Texto",
+  $string: "$Texto",
+  $numero: "$Numero",
+  $math: "$Numero",
+  $lista: "$Lista",
+  $list: "$Lista",
+}
+
+export function resolveFunctionPackage(name: string): FunctionPackage | undefined {
+  const normalized = name.trim().toLowerCase()
+  const canonical = PACKAGE_ALIASES[normalized] ?? name.trim()
+  return FUNCTION_PACKAGES.find((pkg) => pkg.name.toLowerCase() === canonical.toLowerCase())
+}
+
+/** Funções sugeridas ao digitar `variavel.` conforme o tipo declarado. */
+export function functionsForDataType(dataType: string): LogicFunction[] {
+  switch (dataType) {
+    case "texto":
+      return functionsByCategory("texto")
+    case "numero":
+      return functionsByCategory("matematica")
+    case "lista":
+      return functionsByCategory("lista")
+    default:
+      return []
+  }
 }
 
 export function callFunction(name: string, args: RuntimeValue[]): RuntimeValue {
@@ -440,4 +794,49 @@ export function callFunction(name: string, args: RuntimeValue[]): RuntimeValue {
     )
   }
   return fn.run(args)
+}
+
+/** Chama função de um pacote ($Numero.arredondar etc.), validando a categoria. */
+export function callPackageFunction(packageName: string, fnName: string, args: RuntimeValue[]): RuntimeValue {
+  const pkg = resolveFunctionPackage(packageName)
+  if (!pkg) {
+    throw new Error(`Pacote desconhecido: ${packageName}. Use $Texto, $Numero ou $Lista.`)
+  }
+  const fn = findFunction(fnName)
+  if (!fn || !fn.categories.includes(pkg.category)) {
+    throw new Error(`A função "${fnName}" não existe em ${pkg.name}.`)
+  }
+  return callFunction(fn.name, args)
+}
+
+function categoryForValueType(type: RuntimeValue["type"]): FunctionCategory | null {
+  switch (type) {
+    case "texto":
+      return "texto"
+    case "numero":
+      return "matematica"
+    case "lista":
+      return "lista"
+    default:
+      return null
+  }
+}
+
+/** Chama método em valor: nome.maiuscula() → maiuscula(nome), com checagem de tipo. */
+export function callMethodFunction(
+  receiver: RuntimeValue,
+  fnName: string,
+  extraArgs: RuntimeValue[],
+): RuntimeValue {
+  const fn = findFunction(fnName)
+  if (!fn) {
+    throw new Error(`Não conheço a função "${fnName}".`)
+  }
+  const category = categoryForValueType(receiver.type)
+  if (!category || !fn.categories.includes(category)) {
+    throw new Error(
+      `"${fnName}()" não funciona com ${DATA_TYPE_LABEL[receiver.type].toLowerCase()}. Use uma função do tipo certo.`,
+    )
+  }
+  return callFunction(fn.name, [receiver, ...extraArgs])
 }

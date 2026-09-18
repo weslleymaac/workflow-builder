@@ -1,16 +1,18 @@
 "use client"
 
-import type { ReactNode } from "react"
-import { X } from "lucide-react"
+import { useState, type ReactNode } from "react"
+import { Check, ChevronsUpDown, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
   FUNCTION_CATEGORY_LABEL,
   findFunction,
   functionsByCategory,
+  functionsForDataType,
   type LogicFunction,
 } from "@/lib/functions"
 import {
@@ -26,6 +28,7 @@ import {
 } from "@/lib/condition"
 import { getCatalogItem } from "@/lib/node-catalog"
 import type {
+  AssignmentMode,
   CompareOperator,
   ConditionJoin,
   ConditionRule,
@@ -34,9 +37,20 @@ import type {
   ListOperation,
   LoopType,
   SwitchCase,
+  VariableAssignment,
+  VariableDeclaration,
   WorkflowNode,
 } from "@/lib/types"
+import { VariableAutocompleteField, ExpressionField } from "@/components/variable-autocomplete-field"
 import { DATA_TYPE_LABEL, DATA_TYPE_TIP } from "@/lib/values"
+import { cn } from "@/lib/utils"
+import {
+  createVariableAssignment,
+  createVariableDeclaration,
+  getVariableAssignments,
+  getVariableDeclarations,
+  syncVariableDeclarations,
+} from "@/lib/workflow-utils"
 
 interface NodeConfigPanelProps {
   node: WorkflowNode
@@ -84,16 +98,19 @@ export default function NodeConfigPanel({
         </Field>
 
         {node.type === "variable" && (
-          <>
-            <NameField value={node.data.variableName} onChange={(value) => handleChange("variableName", value)} />
-            <TypeField value={node.data.dataType} onChange={(value) => handleChange("dataType", value)} />
-            <Field label="Valor ou expressão" hint='Exemplos: 10, "Ana", verdadeiro, a + b'>
-              <Input
-                value={node.data.valueExpr || ""}
-                onChange={(event) => handleChange("valueExpr", event.target.value)}
-              />
-            </Field>
-          </>
+          <VariableDeclarationsFields
+            declarations={getVariableDeclarations(node.data)}
+            variables={programVariables}
+            onBatchChange={handleBatchChange}
+          />
+        )}
+
+        {node.type === "operation" && (
+          <OperationAssignmentsFields
+            assignments={getVariableAssignments(node.data)}
+            variables={programVariables}
+            onBatchChange={handleBatchChange}
+          />
         )}
 
         {node.type === "input" && (
@@ -111,17 +128,22 @@ export default function NodeConfigPanel({
         )}
 
         {node.type === "print" && (
-          <Field label="Mensagem" hint="Use {variavel} para mostrar um valor guardado.">
-            <Textarea
+          <Field
+            label="Mensagem"
+            hint={
+              "Tudo entre { } é calculado. Pacotes: $Texto, $Numero, $Lista. Contas: + - * / mod. Texto: & para juntar."
+            }
+          >
+            <VariableAutocompleteField
               value={node.data.template || ""}
-              onChange={(event) => handleChange("template", event.target.value)}
-              className="min-h-24"
+              onChange={(value) => handleChange("template", value)}
+              variables={programVariables}
             />
           </Field>
         )}
 
         {node.type === "function" && (
-          <FunctionFields node={node} updateNodeData={updateNodeData} />
+          <FunctionFields node={node} variables={programVariables} updateNodeData={updateNodeData} />
         )}
 
         {node.type === "condition" && (
@@ -204,21 +226,30 @@ export default function NodeConfigPanel({
                 />
                 <div className="grid grid-cols-3 gap-2">
                   <Field label="De">
-                    <Input
+                    <ExpressionField
+                      mode="expression"
+                      singleLine
                       value={node.data.fromExpr || ""}
-                      onChange={(event) => handleChange("fromExpr", event.target.value)}
+                      onChange={(value) => handleChange("fromExpr", value)}
+                      variables={programVariables}
                     />
                   </Field>
                   <Field label="Até">
-                    <Input
+                    <ExpressionField
+                      mode="expression"
+                      singleLine
                       value={node.data.toExpr || ""}
-                      onChange={(event) => handleChange("toExpr", event.target.value)}
+                      onChange={(value) => handleChange("toExpr", value)}
+                      variables={programVariables}
                     />
                   </Field>
                   <Field label="Passo">
-                    <Input
+                    <ExpressionField
+                      mode="expression"
+                      singleLine
                       value={node.data.stepExpr || ""}
-                      onChange={(event) => handleChange("stepExpr", event.target.value)}
+                      onChange={(value) => handleChange("stepExpr", value)}
+                      variables={programVariables}
                     />
                   </Field>
                 </div>
@@ -264,26 +295,34 @@ export default function NodeConfigPanel({
             )}
             {node.data.listOp === "criar" && (
               <Field label="Itens" hint='Separe com vírgula. Ex: "maçã", "banana", 10'>
-                <Textarea
+                <ExpressionField
+                  mode="expression"
                   value={node.data.itemsExpr || ""}
-                  onChange={(event) => handleChange("itemsExpr", event.target.value)}
+                  onChange={(value) => handleChange("itemsExpr", value)}
+                  variables={programVariables}
                 />
               </Field>
             )}
             {node.data.listOp === "adicionar" && (
               <Field label="Valor para adicionar">
-                <Input
+                <ExpressionField
+                  mode="expression"
+                  singleLine
                   value={node.data.valueExpr || ""}
-                  onChange={(event) => handleChange("valueExpr", event.target.value)}
+                  onChange={(value) => handleChange("valueExpr", value)}
+                  variables={programVariables}
                 />
               </Field>
             )}
             {node.data.listOp === "obter" && (
               <>
                 <Field label="Índice" hint="O primeiro item é 0">
-                  <Input
+                  <ExpressionField
+                    mode="expression"
+                    singleLine
                     value={node.data.indexExpr || "0"}
-                    onChange={(event) => handleChange("indexExpr", event.target.value)}
+                    onChange={(value) => handleChange("indexExpr", value)}
+                    variables={programVariables}
                   />
                 </Field>
                 <NameField
@@ -309,9 +348,11 @@ export default function NodeConfigPanel({
 
 function FunctionFields({
   node,
+  variables,
   updateNodeData,
 }: {
   node: WorkflowNode
+  variables: TypedVariable[]
   updateNodeData: (nodeId: string, data: Record<string, unknown>) => void
 }) {
   const category = node.data.functionCategory ?? "texto"
@@ -385,16 +426,18 @@ function FunctionFields({
 
       {selected?.params.map((param, index) => (
         <Field key={`${selected.name}-${param.label}`} label={param.label}>
-          <Input
+          <ExpressionField
+            mode="expression"
+            singleLine
             value={args[index] ?? ""}
             placeholder={param.placeholder}
-            onChange={(event) => {
+            variables={variables}
+            onChange={(value) => {
               const next = [...args]
-              next[index] = event.target.value
+              next[index] = value
               updateNodeData(node.id, { functionArgs: next })
             }}
           />
-          <p className="text-sm leading-relaxed text-muted-foreground">Use {"{variavel}"} ou só o nome da variável.</p>
         </Field>
       ))}
 
@@ -444,6 +487,413 @@ function ListVariableField({
         </SelectContent>
       </Select>
     </Field>
+  )
+}
+
+function VariableDeclarationsFields({
+  declarations,
+  variables,
+  onBatchChange,
+}: {
+  declarations: VariableDeclaration[]
+  variables: TypedVariable[]
+  onBatchChange: (updates: Record<string, unknown>) => void
+}) {
+  const updateAll = (next: VariableDeclaration[]) => {
+    onBatchChange(syncVariableDeclarations(next))
+  }
+
+  const updateOne = (id: string, patch: Partial<VariableDeclaration>) => {
+    updateAll(declarations.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label>Variáveis</Label>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Nome, tipo e valor. Pode criar várias no mesmo bloco.
+        </p>
+      </div>
+
+      {declarations.map((item, index) => (
+        <div key={item.id} className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Variável {index + 1}
+            </p>
+            {declarations.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-destructive hover:text-destructive"
+                onClick={() => updateAll(declarations.filter((entry) => entry.id !== item.id))}
+              >
+                Remover
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <Field label="Nome">
+              <Input
+                value={item.name}
+                placeholder="ex: idade"
+                onChange={(event) => updateOne(item.id, { name: event.target.value })}
+              />
+            </Field>
+            <Field label="Tipo">
+              <Select
+                value={item.dataType}
+                onValueChange={(value) => updateOne(item.id, { dataType: value as DataType })}
+              >
+                <SelectTrigger className="w-[8.5rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(DATA_TYPE_LABEL) as DataType[]).map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {DATA_TYPE_LABEL[type]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
+          <Field label="Valor" hint={DATA_TYPE_TIP[item.dataType]}>
+            <ExpressionField
+              mode="expression"
+              singleLine
+              value={item.valueExpr}
+              variables={variables.filter((entry) => entry.name !== item.name.trim())}
+              placeholder={
+                item.dataType === "texto"
+                  ? '"Ana"'
+                  : item.dataType === "numero"
+                    ? "10"
+                    : item.dataType === "logico"
+                      ? "verdadeiro"
+                      : '"pera", "maçã"'
+              }
+              onChange={(value) => updateOne(item.id, { valueExpr: value })}
+            />
+          </Field>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={() => updateAll([...declarations, createVariableDeclaration()])}
+      >
+        + Adicionar variável
+      </Button>
+    </div>
+  )
+}
+
+function OperationAssignmentsFields({
+  assignments,
+  variables,
+  onBatchChange,
+}: {
+  assignments: VariableAssignment[]
+  variables: TypedVariable[]
+  onBatchChange: (updates: Record<string, unknown>) => void
+}) {
+  const updateAll = (next: VariableAssignment[]) => {
+    onBatchChange({ assignments: next })
+  }
+
+  const updateOne = (id: string, patch: Partial<VariableAssignment>) => {
+    updateAll(assignments.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  }
+
+  const pickFunctionForType = (dataType: DataType, preferred?: string) => {
+    const options = functionsForDataType(dataType)
+    const selected = preferred ? options.find((fn) => fn.name === preferred) : undefined
+    return selected ?? options[0]
+  }
+
+  if (variables.length === 0) {
+    return (
+      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
+        Nenhuma variável no programa ainda. Crie com o bloco <strong>Variável</strong> ou{" "}
+        <strong>Perguntar</strong> antes de processar.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label>Processamentos</Label>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Use uma função do tipo da variável ou escreva uma expressão livre.
+        </p>
+      </div>
+
+      {assignments.map((item, index) => {
+        const selected = variables.find((entry) => entry.name === item.targetVar.trim())
+        const mode: AssignmentMode =
+          item.mode ?? (item.functionName ? "function" : "expression")
+        const typeFns = selected ? functionsForDataType(selected.dataType) : []
+        const canUseFunction = typeFns.length > 0
+        const activeFn =
+          mode === "function" && selected
+            ? pickFunctionForType(selected.dataType, item.functionName)
+            : undefined
+        const extraParams = activeFn?.params.slice(1) ?? []
+        const args = item.functionArgs ?? []
+
+        const setMode = (nextMode: AssignmentMode) => {
+          if (nextMode === "function" && selected) {
+            const fn = pickFunctionForType(selected.dataType, item.functionName)
+            updateOne(item.id, {
+              mode: "function",
+              functionName: fn?.name,
+              functionArgs: fn?.params.slice(1).map((param, i) => args[i] ?? param.placeholder) ?? [],
+            })
+            return
+          }
+          updateOne(item.id, { mode: "expression" })
+        }
+
+        const setTargetVar = (name: string) => {
+          const next = variables.find((entry) => entry.name === name)
+          if (!next) {
+            updateOne(item.id, { targetVar: name })
+            return
+          }
+          const fns = functionsForDataType(next.dataType)
+          if (mode === "function" && fns.length > 0) {
+            const fn = pickFunctionForType(next.dataType, item.functionName)
+            updateOne(item.id, {
+              targetVar: name,
+              mode: "function",
+              functionName: fn?.name,
+              functionArgs: fn?.params.slice(1).map((param) => param.placeholder) ?? [],
+            })
+            return
+          }
+          updateOne(item.id, {
+            targetVar: name,
+            mode: fns.length === 0 ? "expression" : mode,
+          })
+        }
+
+        return (
+          <div key={item.id} className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Processar {index + 1}
+              </p>
+              {assignments.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-destructive hover:text-destructive"
+                  onClick={() => updateAll(assignments.filter((entry) => entry.id !== item.id))}
+                >
+                  Remover
+                </Button>
+              )}
+            </div>
+
+            <Field label="Variável">
+              <Select value={item.targetVar || undefined} onValueChange={setTargetVar}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha uma variável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {variables.map((entry) => (
+                    <SelectItem key={entry.name} value={entry.name}>
+                      {entry.name}
+                      <span className="ml-2 text-muted-foreground">({DATA_TYPE_LABEL[entry.dataType]})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-background p-1">
+              <button
+                type="button"
+                disabled={!canUseFunction && Boolean(selected)}
+                onClick={() => setMode("function")}
+                className={cn(
+                  "rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+                  mode === "function"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted",
+                  !canUseFunction && selected && "cursor-not-allowed opacity-40",
+                )}
+              >
+                Função
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("expression")}
+                className={cn(
+                  "rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+                  mode === "expression"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                Expressão
+              </button>
+            </div>
+
+            {mode === "function" ? (
+              selected && canUseFunction && activeFn ? (
+                <>
+                  <Field label="Função" hint={activeFn.description}>
+                    <FunctionSearchSelect
+                      options={typeFns}
+                      value={activeFn.name}
+                      onChange={(value) => {
+                        const fn = findFunction(value)
+                        if (!fn) return
+                        updateOne(item.id, {
+                          functionName: fn.name,
+                          functionArgs: fn.params.slice(1).map((param, i) => args[i] ?? param.placeholder),
+                        })
+                      }}
+                    />
+                  </Field>
+
+                  <p className="rounded-lg border border-rose-500/15 bg-rose-500/10 px-2.5 py-2 font-mono text-xs text-rose-900 dark:text-rose-100">
+                    {item.targetVar}.{activeFn.name}(
+                    {extraParams.map((param) => param.placeholder).join(", ")})
+                  </p>
+
+                  {extraParams.map((param, paramIndex) => (
+                    <Field key={`${activeFn.name}-${param.label}`} label={param.label}>
+                      <ExpressionField
+                        mode="expression"
+                        value={args[paramIndex] ?? ""}
+                        placeholder={param.placeholder}
+                        variables={variables}
+                        onChange={(value) => {
+                          const next = [...args]
+                          next[paramIndex] = value
+                          updateOne(item.id, { functionArgs: next })
+                        }}
+                      />
+                    </Field>
+                  ))}
+                </>
+              ) : (
+                <p className="rounded-lg border border-border bg-muted/40 p-2 text-sm text-muted-foreground">
+                  {selected
+                    ? `Variáveis do tipo ${DATA_TYPE_LABEL[selected.dataType]} não têm funções prontas. Use Expressão.`
+                    : "Escolha uma variável para ver as funções disponíveis."}
+                </p>
+              )
+            ) : (
+              <Field
+                label="Expressão"
+                hint={
+                  selected
+                    ? DATA_TYPE_TIP[selected.dataType]
+                    : "Ex: pontos + 1  ou  nome & \"!\""
+                }
+              >
+                <ExpressionField
+                  mode="expression"
+                  value={item.valueExpr}
+                  variables={variables}
+                  placeholder={
+                    selected?.dataType === "texto"
+                      ? 'nome & "!"'
+                      : selected?.dataType === "numero"
+                        ? `${item.targetVar || "n"} + 1`
+                        : selected?.dataType === "logico"
+                          ? "verdadeiro"
+                          : selected?.dataType === "lista"
+                            ? '"pera", "maçã"'
+                            : "expressão"
+                  }
+                  onChange={(value) => updateOne(item.id, { valueExpr: value })}
+                />
+              </Field>
+            )}
+          </div>
+        )
+      })}
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={() => updateAll([...assignments, createVariableAssignment()])}
+      >
+        + Adicionar processamento
+      </Button>
+    </div>
+  )
+}
+
+function FunctionSearchSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: LogicFunction[]
+  value: string
+  onChange: (value: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const selected = options.find((fn) => fn.name === value)
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-11 w-full justify-between rounded-xl px-3 font-normal"
+        >
+          <span className="truncate">{selected?.label ?? "Escolha uma função"}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar função..." />
+          <CommandList className="max-h-64">
+            <CommandEmpty>Nenhuma função encontrada.</CommandEmpty>
+            <CommandGroup>
+              {options.map((fn) => (
+                <CommandItem
+                  key={fn.name}
+                  value={`${fn.label} ${fn.name} ${fn.description}`}
+                  onSelect={() => {
+                    onChange(fn.name)
+                    setOpen(false)
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === fn.name ? "opacity-100" : "opacity-0")} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{fn.label}</p>
+                    <p className="truncate text-xs text-muted-foreground">{fn.name}()</p>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -691,11 +1141,14 @@ function SwitchFields({
         {cases.map((item, index) => (
           <div key={item.id} className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
             <Field label={`Caso ${index + 1} · valor`} hint='Ex: "A", 1, verdadeiro'>
-              <Input
+              <ExpressionField
+                mode="expression"
+                singleLine
                 value={item.matchExpr}
-                onChange={(event) => {
+                variables={variables}
+                onChange={(value) => {
                   const next = cases.map((entry) =>
-                    entry.id === item.id ? { ...entry, matchExpr: event.target.value } : entry,
+                    entry.id === item.id ? { ...entry, matchExpr: value } : entry,
                   )
                   updateCases(next)
                 }}
@@ -850,7 +1303,14 @@ function ConditionSideField({
   if (variables.length === 0) {
     return (
       <Field label={label} hint={hint}>
-        <Input value={value || ""} onChange={(event) => onChange(event.target.value)} />
+        <ExpressionField
+          mode="expression"
+          singleLine
+          value={value || ""}
+          onChange={onChange}
+          variables={variables}
+          placeholder='Ex: idade, 18, "Ana"'
+        />
       </Field>
     )
   }
@@ -877,12 +1337,16 @@ function ConditionSideField({
         </SelectContent>
       </Select>
       {mode === "__custom__" && (
-        <Input
-          className="mt-2"
-          value={value || ""}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder='Ex: {idade}, 18, "Ana"'
-        />
+        <div className="mt-2">
+          <ExpressionField
+            mode="expression"
+            singleLine
+            value={value || ""}
+            onChange={onChange}
+            variables={variables}
+            placeholder='Ex: idade + 1, "Ana", $Numero.raiz(9)'
+          />
+        </div>
       )}
     </Field>
   )

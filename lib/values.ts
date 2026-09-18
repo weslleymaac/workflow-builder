@@ -11,7 +11,7 @@ export const DATA_TYPE_TIP: Record<DataType, string> = {
   texto: 'Palavras entre aspas, tipo "Ana"',
   numero: "Quantidades, tipo 10 ou 3.5",
   logico: "Verdadeiro ou falso — respostas de sim/não",
-  lista: "Vários valores juntos, tipo [1, 2, 3]",
+  lista: 'Itens separados por vírgula. Ex: "pera", "maçã"  ou  ["pera", "maçã"]',
 }
 
 export function makeValue(type: DataType, value: RuntimeValue["value"]): RuntimeValue {
